@@ -829,12 +829,17 @@
   </main>
 
   <script src="https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <script>
     const CONFIG = {
       churchName: "Congresso da Igreja",
       churchPaymentUrl: "https://link-da-igreja.com/pagamento-congresso",
       n8nRegistrationWebhookUrl: "",
       n8nProofWebhookUrl: "",
+      supabaseUrl: "",
+      supabaseAnonKey: "",
+      supabaseTable: "congresso_inscricoes",
+      supabaseProofBucket: "comprovantes",
       adminEmail: "administracao@igreja.com",
       adminUser: "secretaria",
       adminPassword: "5solas",
@@ -853,6 +858,7 @@
     const moneyLink = CONFIG.churchPaymentUrl;
     let memoryRecords = [];
     let memoryAdminSession = false;
+    let supabaseClient = null;
 
     function storageAvailable(type) {
       try {
@@ -868,6 +874,125 @@
 
     const hasLocalStorage = storageAvailable("localStorage");
     const hasSessionStorage = storageAvailable("sessionStorage");
+
+    function supabaseEnabled() {
+      return Boolean(CONFIG.supabaseUrl && CONFIG.supabaseAnonKey && window.supabase && window.supabase.createClient);
+    }
+
+    function getSupabaseClient() {
+      if (!supabaseEnabled()) return null;
+      if (!supabaseClient) {
+        supabaseClient = window.supabase.createClient(CONFIG.supabaseUrl, CONFIG.supabaseAnonKey);
+      }
+      return supabaseClient;
+    }
+
+    function recordToSupabaseRow(record) {
+      const storedRecord = {
+        ...record,
+        paymentProof: record.paymentProof ? { ...record.paymentProof, data: "" } : record.paymentProof
+      };
+      return {
+        id: record.id,
+        created_at: record.createdAt || new Date().toISOString(),
+        full_name: record.fullName || "",
+        email: record.email || "",
+        cpf: record.cpf || "",
+        church: record.church || "",
+        payment_method: record.paymentMethod || "",
+        payment_status: record.paymentStatus || "Pendente",
+        payment_reference: record.paymentReference || "",
+        data: storedRecord
+      };
+    }
+
+    function rowToRecord(row) {
+      return row.data || {
+        id: row.id,
+        createdAt: row.created_at,
+        fullName: row.full_name,
+        email: row.email,
+        cpf: row.cpf,
+        church: row.church,
+        paymentMethod: row.payment_method,
+        paymentStatus: row.payment_status,
+        paymentReference: row.payment_reference
+      };
+    }
+
+    function safeFileName(name) {
+      return String(name || "comprovante")
+        .normalize("NFD")
+        .replace(/[\u0300-\u036f]/g, "")
+        .replace(/[^a-zA-Z0-9._-]/g, "-")
+        .replace(/-+/g, "-");
+    }
+
+    async function uploadProofToSupabase(file, record) {
+      const client = getSupabaseClient();
+      if (!client || !file || !CONFIG.supabaseProofBucket) return {};
+
+      const path = `${record.id}/${Date.now()}-${safeFileName(file.name)}`;
+      const { error } = await client.storage
+        .from(CONFIG.supabaseProofBucket)
+        .upload(path, file, { upsert: false, contentType: file.type || "application/octet-stream" });
+
+      if (error) {
+        console.warn("Falha ao enviar comprovante ao Supabase Storage:", error.message);
+        return {};
+      }
+
+      const { data } = client.storage.from(CONFIG.supabaseProofBucket).getPublicUrl(path);
+      return { supabasePath: path, supabasePublicUrl: data && data.publicUrl ? data.publicUrl : "" };
+    }
+
+    async function loadRecordsFromSupabase() {
+      const client = getSupabaseClient();
+      if (!client) return;
+
+      const { data, error } = await client
+        .from(CONFIG.supabaseTable)
+        .select("*")
+        .order("created_at", { ascending: false });
+
+      if (error) {
+        console.warn("Falha ao carregar Supabase:", error.message);
+        return;
+      }
+
+      const records = (data || []).map(rowToRecord);
+      memoryRecords = records;
+      if (hasLocalStorage) {
+        localStorage.setItem(CONFIG.storageKey, JSON.stringify(records));
+      }
+      syncRecordsToSupabase(records);
+      renderAdmin();
+    }
+
+    async function syncRecordsToSupabase(records) {
+      const client = getSupabaseClient();
+      if (!client || !records.length) return;
+
+      const { error } = await client
+        .from(CONFIG.supabaseTable)
+        .upsert(records.map(recordToSupabaseRow), { onConflict: "id" });
+
+      if (error) console.warn("Falha ao salvar no Supabase:", error.message);
+    }
+
+    async function deleteRecordFromSupabase(id) {
+      const client = getSupabaseClient();
+      if (!client || !id) return;
+      const { error } = await client.from(CONFIG.supabaseTable).delete().eq("id", id);
+      if (error) console.warn("Falha ao remover do Supabase:", error.message);
+    }
+
+    async function clearSupabaseRecords() {
+      const client = getSupabaseClient();
+      if (!client) return;
+      const { error } = await client.from(CONFIG.supabaseTable).delete().not("id", "is", null);
+      if (error) console.warn("Falha ao limpar Supabase:", error.message);
+    }
 
     function onlyDigits(value) {
       return String(value || "").replace(/\D/g, "");
@@ -1275,6 +1400,7 @@
                   <a class="map-link" href="${escapeHtml(record.registrationLink)}" target="_blank" rel="noopener">Link individual</a><br>
                   <small>${record.paymentConfirmationSource ? `Fonte: ${escapeHtml(record.paymentConfirmationSource)}` : "Aguardando conciliação automática"}</small>
                   ${record.paymentProof && record.paymentProof.name ? `<br><small>Comprovante: ${escapeHtml(record.paymentProof.name)}</small>` : ""}
+                  ${record.paymentProof && record.paymentProof.supabasePublicUrl ? `<br><a class="map-link" href="${escapeHtml(record.paymentProof.supabasePublicUrl)}" target="_blank" rel="noopener">Abrir comprovante</a>` : ""}
                   ${record.proofAmount ? `<br><small>Valor informado: ${escapeHtml(record.proofAmount)}</small>` : ""}
                   ${record.proofTransactionId ? `<br><small>ID/autenticação: ${escapeHtml(record.proofTransactionId)}</small>` : ""}
                   ${record.proofOcrStatus ? `<br><small>OCR: ${escapeHtml(record.proofOcrStatus)} (${escapeHtml(record.proofOcrMatches)})</small>` : ""}
@@ -1519,11 +1645,14 @@
       }
 
       proofSuccessBox.innerHTML = `<strong>Lendo comprovante.</strong><p>O OCR está tentando localizar inscrição/referência, valor e ID/autenticação no arquivo enviado.</p>`;
-      records[index].paymentProof = await readProofFile($("#latePaymentProof").files[0]);
+      const proofFile = $("#latePaymentProof").files[0];
+      records[index].paymentProof = await readProofFile(proofFile);
+      const uploadedProof = await uploadProofToSupabase(proofFile, records[index]);
+      records[index].paymentProof = { ...records[index].paymentProof, ...uploadedProof };
       records[index].proofAmount = $("#proofAmount").value.trim();
       records[index].proofTransactionId = $("#proofTransactionId").value.trim();
       records[index].proofSentAt = new Date().toISOString();
-      const ocrResult = await analyzeProofWithOcr($("#latePaymentProof").files[0], records[index], records[index].proofAmount, records[index].proofTransactionId);
+      const ocrResult = await analyzeProofWithOcr(proofFile, records[index], records[index].proofAmount, records[index].proofTransactionId);
       records[index].proofOcrStatus = ocrResult.status;
       records[index].proofOcrMatches = ocrResult.matches;
       if (records[index].paymentStatus !== "Pago") {
@@ -1569,7 +1698,8 @@
       }
 
       if (actionButton.dataset.action === "remove") {
-        records.splice(index, 1);
+        const [removed] = records.splice(index, 1);
+        deleteRecordFromSupabase(removed.id);
       }
 
       saveRecords(records);
@@ -1588,8 +1718,9 @@
     });
 
     $("#clearAll").addEventListener("click", () => {
-      if (confirm("Apagar todas as inscrições salvas neste navegador?")) {
+      if (confirm("Apagar todas as inscrições salvas neste navegador e no Supabase, se estiver configurado?")) {
         saveRecords([]);
+        clearSupabaseRecords();
       }
     });
 
@@ -1635,6 +1766,7 @@
     if (!applyAdminRouteFromUrl()) {
       updateAdminAccess();
     }
+    loadRecordsFromSupabase();
   </script>
 </body>
 </html>

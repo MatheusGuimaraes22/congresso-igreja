@@ -60,6 +60,10 @@ const CONFIG = {
   churchPaymentUrl: "https://link-da-igreja.com/pagamento-congresso",
   n8nRegistrationWebhookUrl: "",
   n8nProofWebhookUrl: "",
+  supabaseUrl: "",
+  supabaseAnonKey: "",
+  supabaseTable: "congresso_inscricoes",
+  supabaseProofBucket: "comprovantes",
   adminEmail: "administracao@igreja.com",
   adminUser: "secretaria",
   adminPassword: "5solas",
@@ -70,6 +74,25 @@ const CONFIG = {
 Troque `churchPaymentUrl` pelo link real de pagamento/confirmação da igreja e `adminEmail` pelo e-mail da secretaria/administração.
 
 Troque também `adminUser` e `adminPassword`. Esta proteção é suficiente apenas para protótipo/local, porque usuário e senha ficam no HTML. Em produção, a área administrativa deve usar login no backend, Supabase Auth, Firebase Auth, n8n com autenticação, Cloudflare Access ou outro controle no servidor.
+
+## Supabase
+
+Para salvar inscrições em uma base central:
+
+1. Crie um projeto no Supabase.
+2. Abra `SQL Editor`.
+3. Rode o arquivo `supabase-schema.sql`.
+4. Em `Project Settings` > `API`, copie `Project URL` e a chave `anon/public`.
+5. Cole no `CONFIG` do `index.html`:
+
+```js
+supabaseUrl: "https://SEU-PROJETO.supabase.co",
+supabaseAnonKey: "SUA-CHAVE-ANON",
+```
+
+Depois publique novamente. Com isso, novas inscrições e atualizações do painel passam a ser salvas no Supabase. O site também tenta enviar comprovantes para o bucket `comprovantes`.
+
+Observação: esta primeira integração usa políticas públicas para permitir que um site estático grave no Supabase. Para produção mais protegida, o próximo passo é trocar o login simples por Supabase Auth.
 
 Para conectar com n8n, preencha:
 
