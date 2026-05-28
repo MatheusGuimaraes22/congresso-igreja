@@ -1,0 +1,92 @@
+{
+  "name": "Congresso Igreja - Nova inscricao",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "congresso-nova-inscricao",
+        "responseMode": "responseNode",
+        "options": {
+          "allowedOrigins": "https://congresso-igreja.vercel.app"
+        }
+      },
+      "id": "webhook-nova-inscricao",
+      "name": "Webhook - nova inscricao",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [
+        0,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "const body = $json.body || $json;\nconst registration = body.registration || body;\nconst paymentReference = registration.paymentReference || registration.referenciaPagamento || registration.id;\nconst paymentMethod = registration.paymentMethod || registration.formaPagamento || 'Nao informada';\n\nreturn [{\n  json: {\n    ok: true,\n    event: body.event || 'registration.created',\n    registrationId: registration.id,\n    fullName: registration.fullName,\n    email: registration.email,\n    cpf: registration.cpf,\n    church: registration.church,\n    paymentMethod,\n    paymentReference,\n    paymentStatus: 'Pendente',\n    createdAt: registration.createdAt || new Date().toISOString(),\n    paymentUrl: registration.registrationLink || '',\n    registration\n  }\n}];"
+      },
+      "id": "normalizar-inscricao",
+      "name": "Normalizar dados",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        280,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ { ok: true, registrationId: $json.registrationId, paymentReference: $json.paymentReference, paymentUrl: $json.paymentUrl } }}",
+        "options": {
+          "responseCode": 200,
+          "responseHeaders": {
+            "entries": [
+              {
+                "name": "Access-Control-Allow-Origin",
+                "value": "https://congresso-igreja.vercel.app"
+              },
+              {
+                "name": "Access-Control-Allow-Headers",
+                "value": "Content-Type"
+              }
+            ]
+          }
+        }
+      },
+      "id": "responder-site",
+      "name": "Responder ao site",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1,
+      "position": [
+        560,
+        0
+      ]
+    }
+  ],
+  "connections": {
+    "Webhook - nova inscricao": {
+      "main": [
+        [
+          {
+            "node": "Normalizar dados",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Normalizar dados": {
+      "main": [
+        [
+          {
+            "node": "Responder ao site",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1"
+  }
+}

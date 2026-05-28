@@ -1,0 +1,92 @@
+{
+  "name": "Congresso Igreja - Comprovante",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "congresso-comprovante",
+        "responseMode": "responseNode",
+        "options": {
+          "allowedOrigins": "https://congresso-igreja.vercel.app"
+        }
+      },
+      "id": "webhook-comprovante",
+      "name": "Webhook - comprovante",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [
+        0,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "const body = $json.body || $json;\n\nreturn [{\n  json: {\n    ok: true,\n    event: body.event || 'registration.proof_uploaded',\n    registrationId: body.registrationId,\n    cpf: body.cpf,\n    email: body.email,\n    paymentReference: body.paymentReference,\n    proofAmount: body.proofAmount,\n    proofTransactionId: body.proofTransactionId,\n    proofOcrStatus: body.proofOcrStatus,\n    proofOcrMatches: body.proofOcrMatches,\n    proofFileName: body.paymentProof && body.paymentProof.name ? body.paymentProof.name : '',\n    receivedAt: new Date().toISOString(),\n    raw: body\n  }\n}];"
+      },
+      "id": "normalizar-comprovante",
+      "name": "Normalizar comprovante",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        280,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ { ok: true, registrationId: $json.registrationId, proofStatus: $json.proofOcrStatus || 'Recebido' } }}",
+        "options": {
+          "responseCode": 200,
+          "responseHeaders": {
+            "entries": [
+              {
+                "name": "Access-Control-Allow-Origin",
+                "value": "https://congresso-igreja.vercel.app"
+              },
+              {
+                "name": "Access-Control-Allow-Headers",
+                "value": "Content-Type"
+              }
+            ]
+          }
+        }
+      },
+      "id": "responder-site",
+      "name": "Responder ao site",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1,
+      "position": [
+        560,
+        0
+      ]
+    }
+  ],
+  "connections": {
+    "Webhook - comprovante": {
+      "main": [
+        [
+          {
+            "node": "Normalizar comprovante",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Normalizar comprovante": {
+      "main": [
+        [
+          {
+            "node": "Responder ao site",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1"
+  }
+}

@@ -76,6 +76,8 @@ Para conectar com n8n, preencha:
 - `n8nRegistrationWebhookUrl`: webhook que recebe novas inscrições.
 - `n8nProofWebhookUrl`: webhook que recebe comprovantes enviados depois.
 
+Workflows prontos para importação no n8n estão na pasta `n8n-workflows/`.
+
 Se o webhook de inscrição retornar JSON com `paymentUrl`, `payment_url`, `checkoutUrl`, `checkout_url` ou `link`, a página usa esse link individual no QR Code.
 
 ## Confirmação automática de pagamento

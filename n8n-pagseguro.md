@@ -16,7 +16,12 @@ Use os dois:
 
 ## Webhooks no n8n
 
-Crie dois workflows ou dois Webhook nodes:
+Você pode importar os workflows prontos da pasta `n8n-workflows/`:
+
+- `n8n-workflows/congresso-nova-inscricao.json`
+- `n8n-workflows/congresso-comprovante.json`
+
+Ou criar manualmente dois workflows/Webhook nodes:
 
 ### 1. Nova inscrição
 
