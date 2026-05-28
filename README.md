@@ -87,12 +87,14 @@ Para salvar inscrições em uma base central:
 
 ```js
 supabaseUrl: "https://SEU-PROJETO.supabase.co",
-supabaseAnonKey: "SUA-CHAVE-ANON",
+  supabaseAnonKey: "SUA-CHAVE-ANON",
 ```
 
 Depois publique novamente. Com isso, novas inscrições e atualizações do painel passam a ser salvas no Supabase. O site também tenta enviar comprovantes para o bucket `comprovantes`.
 
-Observação: esta primeira integração usa políticas públicas para permitir que um site estático grave no Supabase. Para produção mais protegida, o próximo passo é trocar o login simples por Supabase Auth.
+O arquivo SQL também cria a tabela `admin_config`, usada para trocar usuário e senha pelo painel administrativo. A senha é salva como hash SHA-256.
+
+Observação: esta integração usa políticas públicas para permitir que um site estático grave no Supabase. Para produção mais protegida, o próximo passo é trocar o login simples por Supabase Auth.
 
 Para conectar com n8n, preencha:
 

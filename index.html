@@ -805,6 +805,33 @@
             <strong>Painel administrativo liberado.</strong>
             <p>Use este painel para acompanhar inscritos, pagamentos, caronas, vagas oferecidas e comprovantes.</p>
           </div>
+          <form id="adminCredentialsForm" class="admin-login">
+            <fieldset>
+              <legend>Alterar acesso administrativo</legend>
+              <div class="grid">
+                <div class="field">
+                  <label for="currentAdminPassword">Senha atual *</label>
+                  <input id="currentAdminPassword" name="currentAdminPassword" type="password" autocomplete="current-password" required>
+                </div>
+                <div class="field">
+                  <label for="newAdminUser">Novo usuário *</label>
+                  <input id="newAdminUser" name="newAdminUser" autocomplete="username" required>
+                </div>
+                <div class="field">
+                  <label for="newAdminPassword">Nova senha *</label>
+                  <input id="newAdminPassword" name="newAdminPassword" type="password" autocomplete="new-password" minlength="4" required>
+                </div>
+                <div class="field">
+                  <label for="confirmAdminPassword">Confirmar nova senha *</label>
+                  <input id="confirmAdminPassword" name="confirmAdminPassword" type="password" autocomplete="new-password" minlength="4" required>
+                </div>
+              </div>
+            </fieldset>
+            <div class="actions">
+              <button class="btn btn--ghost" type="submit">Salvar novo acesso</button>
+            </div>
+            <div class="success" id="adminCredentialsMessage" role="status" aria-live="polite"></div>
+          </form>
           <div class="admin-toolbar">
             <div class="stats">
               <div class="stat"><strong id="totalCount">0</strong><span>Total</span></div>
@@ -839,10 +866,12 @@
       supabaseUrl: "https://fzufcfefcikcklbkuerf.supabase.co",
       supabaseAnonKey: "sb_publishable__7eNcEjFykry9wBXn8tpzA_evGhJd9_",
       supabaseTable: "congresso_inscricoes",
+      supabaseAdminTable: "admin_config",
       supabaseProofBucket: "comprovantes",
       adminEmail: "administracao@igreja.com",
       adminUser: "secretaria",
       adminPassword: "5solas",
+      adminPasswordHash: "a8be719ce804dbd06ea3eb3c9a9dc49feb56cc8248bda78a535af8180c34bb37",
       storageKey: "congressoIgrejaInscricoes"
     };
 
@@ -996,6 +1025,56 @@
       if (!client) return;
       const { error } = await client.from(CONFIG.supabaseTable).delete().not("id", "is", null);
       if (error) console.warn("Falha ao limpar Supabase:", error.message);
+    }
+
+    async function sha256Hex(value) {
+      const bytes = new TextEncoder().encode(String(value || ""));
+      const hash = await crypto.subtle.digest("SHA-256", bytes);
+      return Array.from(new Uint8Array(hash)).map((byte) => byte.toString(16).padStart(2, "0")).join("");
+    }
+
+    async function getAdminConfig() {
+      const fallback = {
+        adminUser: CONFIG.adminUser,
+        adminPasswordHash: CONFIG.adminPasswordHash || await sha256Hex(CONFIG.adminPassword)
+      };
+      const client = getSupabaseClient();
+      if (!client) return fallback;
+
+      const { data, error } = await client
+        .from(CONFIG.supabaseAdminTable)
+        .select("admin_user,password_hash")
+        .eq("id", "main")
+        .maybeSingle();
+
+      if (error || !data) {
+        if (error) console.warn("Falha ao carregar acesso admin:", error.message);
+        return fallback;
+      }
+
+      return {
+        adminUser: data.admin_user || fallback.adminUser,
+        adminPasswordHash: data.password_hash || fallback.adminPasswordHash
+      };
+    }
+
+    async function saveAdminConfig(adminUser, passwordHash) {
+      const client = getSupabaseClient();
+      if (!client) return { ok: false, error: "Supabase não configurado" };
+
+      const { error } = await client
+        .from(CONFIG.supabaseAdminTable)
+        .upsert({
+          id: "main",
+          admin_user: adminUser,
+          password_hash: passwordHash,
+          updated_at: new Date().toISOString()
+        }, { onConflict: "id" });
+
+      if (error) return { ok: false, error: error.message };
+      CONFIG.adminUser = adminUser;
+      CONFIG.adminPasswordHash = passwordHash;
+      return { ok: true };
     }
 
     function onlyDigits(value) {
@@ -1743,18 +1822,18 @@
       }
     });
 
-    $("#adminLoginForm").addEventListener("submit", (event) => {
+    $("#adminLoginForm").addEventListener("submit", async (event) => {
       event.preventDefault();
       const user = $("#adminUser").value.trim().toLowerCase();
       const password = $("#adminPassword").value.trim();
-      const expectedUsers = [
-        CONFIG.adminUser,
-        CONFIG.adminEmail
-      ].map((value) => String(value || "").trim().toLowerCase()).filter(Boolean);
-      const expectedPassword = String(CONFIG.adminPassword || "").trim();
+      const adminConfig = await getAdminConfig();
+      const expectedUsers = [adminConfig.adminUser, CONFIG.adminEmail]
+        .map((value) => String(value || "").trim().toLowerCase())
+        .filter(Boolean);
+      const passwordHash = await sha256Hex(password);
       const message = $("#adminLoginMessage");
 
-      if (expectedUsers.includes(user) && password === expectedPassword) {
+      if (expectedUsers.includes(user) && passwordHash === adminConfig.adminPasswordHash) {
         message.classList.remove("is-visible");
         setAdminAuthenticated(true);
         event.target.reset();
@@ -1764,6 +1843,37 @@
 
       message.classList.add("is-visible");
       message.innerHTML = `<strong>Acesso negado.</strong><p>Usuário ou senha incorretos.</p>`;
+    });
+
+    $("#adminCredentialsForm").addEventListener("submit", async (event) => {
+      event.preventDefault();
+      const message = $("#adminCredentialsMessage");
+      const currentPassword = $("#currentAdminPassword").value.trim();
+      const newUser = $("#newAdminUser").value.trim();
+      const newPassword = $("#newAdminPassword").value.trim();
+      const confirmPassword = $("#confirmAdminPassword").value.trim();
+
+      if (newPassword !== confirmPassword) {
+        showMessage(message, "Senhas diferentes.", "A nova senha e a confirmação precisam ser iguais.");
+        return;
+      }
+
+      const adminConfig = await getAdminConfig();
+      const currentHash = await sha256Hex(currentPassword);
+      if (currentHash !== adminConfig.adminPasswordHash) {
+        showMessage(message, "Senha atual incorreta.", "Informe a senha atual para alterar o acesso administrativo.");
+        return;
+      }
+
+      const newHash = await sha256Hex(newPassword);
+      const result = await saveAdminConfig(newUser, newHash);
+      if (!result.ok) {
+        showMessage(message, "Não foi possível salvar.", result.error || "Verifique a configuração do Supabase.");
+        return;
+      }
+
+      showMessage(message, "Acesso atualizado.", "O novo usuário e senha passam a valer para qualquer dispositivo.");
+      event.target.reset();
     });
 
     $("#toggleAdminPassword").addEventListener("click", () => {
