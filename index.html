@@ -210,6 +210,9 @@
     .field--full { grid-column: 1 / -1; }
     .field--third { grid-column: span 4; }
     .field--small { grid-column: span 3; }
+    .address-cep { grid-column: span 3; }
+    .address-street { grid-column: span 7; }
+    .address-number { grid-column: span 2; }
 
     label {
       font-size: 13px;
@@ -540,7 +543,10 @@
 
       .field,
       .field--third,
-      .field--small {
+      .field--small,
+      .address-cep,
+      .address-street,
+      .address-number {
         grid-column: 1 / -1;
       }
 
@@ -603,16 +609,16 @@
             <fieldset>
               <legend>Endereço</legend>
               <div class="grid">
-                <div class="field field--third">
+                <div class="field address-cep">
                   <label for="cep">CEP *</label>
                   <input id="cep" name="cep" inputmode="numeric" autocomplete="postal-code" placeholder="00000-000" maxlength="9" required>
                   <span class="hint" id="cepHint">Digite o CEP para buscar rua, bairro, cidade e UF.</span>
                 </div>
-                <div class="field">
+                <div class="field address-street">
                   <label for="street">Rua *</label>
                   <input id="street" name="street" autocomplete="address-line1" required>
                 </div>
-                <div class="field field--small">
+                <div class="field address-number">
                   <label for="number">Número *</label>
                   <input id="number" name="number" autocomplete="address-line2" required>
                 </div>
