@@ -7,15 +7,15 @@
   <style>
     :root {
       color-scheme: light;
-      --bg: #f6f3ed;
+      --bg: #f5ecdf;
       --ink: #1f2421;
       --muted: #626962;
-      --line: #d9d2c6;
+      --line: #dbcdbd;
       --paper: #fffdf8;
-      --paper-2: #f0efe7;
-      --primary: #22577a;
-      --primary-2: #163c54;
-      --accent: #d85c38;
+      --paper-2: #efe4d5;
+      --primary: #583016;
+      --primary-2: #2a211b;
+      --accent: #8d4f2a;
       --ok: #28724f;
       --warn: #9a5a00;
       --danger: #9b2f2f;
@@ -39,7 +39,10 @@
 
     body {
       margin: 0;
-      background: var(--bg);
+      background:
+        linear-gradient(rgba(245, 236, 223, .92), rgba(245, 236, 223, .92)),
+        url("assets/icc-symbol.png") right 42px top 28px / 180px auto no-repeat,
+        var(--bg);
       color: var(--ink);
       line-height: 1.45;
     }
@@ -58,10 +61,27 @@
       display: grid;
       align-items: end;
       background:
-        linear-gradient(90deg, rgba(18, 30, 28, .82), rgba(18, 30, 28, .48)),
-        url("https://images.unsplash.com/photo-1494526585095-c41746248156?auto=format&fit=crop&w=1800&q=80") center/cover;
-      color: #fff;
+        linear-gradient(90deg, rgba(42, 33, 27, .94), rgba(88, 48, 22, .74)),
+        linear-gradient(rgba(245, 236, 223, .2), rgba(245, 236, 223, .2)),
+        url("assets/icc-symbol.png") calc(100% - 6vw) center / min(390px, 44vw) auto no-repeat,
+        #2a211b;
+      color: #fff8ef;
       padding: 32px 20px 44px;
+    }
+
+    .hero__brand {
+      width: min(430px, 100%);
+      margin: 0 0 34px;
+      padding: 12px 16px;
+      border-radius: 8px;
+      background: rgba(255, 253, 248, .94);
+      box-shadow: 0 18px 54px rgba(0, 0, 0, .18);
+    }
+
+    .hero__brand img {
+      display: block;
+      width: 100%;
+      height: auto;
     }
 
     .hero__inner,
@@ -533,7 +553,10 @@
 <body>
   <header class="hero">
     <div class="hero__inner">
-      <p class="eyebrow">Congresso da Igreja</p>
+      <div class="hero__brand">
+        <img src="assets/icc-logo-horizontal.png" alt="Igreja Reformada Comunidade da Cruz">
+      </div>
+      <p class="eyebrow">Igreja Reformada Comunidade da Cruz</p>
       <h1>Inscrição para o congresso</h1>
       <p>Preencha seus dados, informe transporte e acompanhe o QR Code de pagamento/confirmação fornecido pela igreja.</p>
     </div>
