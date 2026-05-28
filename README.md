@@ -61,8 +61,8 @@ const CONFIG = {
   n8nRegistrationWebhookUrl: "",
   n8nProofWebhookUrl: "",
   adminEmail: "administracao@igreja.com",
-  adminUser: "admin",
-  adminPassword: "troque-esta-senha",
+  adminUser: "secretaria",
+  adminPassword: "5solas",
   storageKey: "congressoIgrejaInscricoes"
 };
 ```
