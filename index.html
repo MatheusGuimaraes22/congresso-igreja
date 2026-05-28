@@ -965,19 +965,23 @@
       if (hasLocalStorage) {
         localStorage.setItem(CONFIG.storageKey, JSON.stringify(records));
       }
-      syncRecordsToSupabase(records);
       renderAdmin();
     }
 
     async function syncRecordsToSupabase(records) {
       const client = getSupabaseClient();
-      if (!client || !records.length) return;
+      if (!client) return { ok: false, skipped: true };
+      if (!records.length) return { ok: true, skipped: false };
 
       const { error } = await client
         .from(CONFIG.supabaseTable)
         .upsert(records.map(recordToSupabaseRow), { onConflict: "id" });
 
-      if (error) console.warn("Falha ao salvar no Supabase:", error.message);
+      if (error) {
+        console.warn("Falha ao salvar no Supabase:", error.message);
+        return { ok: false, skipped: false, error: error.message };
+      }
+      return { ok: true, skipped: false };
     }
 
     async function deleteRecordFromSupabase(id) {
@@ -1606,16 +1610,31 @@
           registration: record
         });
         const paymentUrl = pickPaymentUrl(webhookResult.data);
+        const supabaseResult = await syncRecordsToSupabase([record]);
         if (paymentUrl) {
           record.registrationLink = paymentUrl;
-          record.integrationStatus = "Enviado ao n8n; link PagSeguro recebido";
-        } else if (webhookResult.ok) {
-          record.integrationStatus = "Enviado ao n8n";
-        } else if (webhookResult.skipped) {
-          record.integrationStatus = "Webhook n8n não configurado";
-        } else {
-          record.integrationStatus = `Falha no envio ao n8n${webhookResult.status ? ` (${webhookResult.status})` : ""}`;
         }
+
+        const integrationParts = [];
+        if (supabaseResult.ok) {
+          integrationParts.push("Salvo no Supabase");
+        } else if (supabaseResult.skipped) {
+          integrationParts.push("Supabase não configurado");
+        } else {
+          integrationParts.push(`Falha no Supabase${supabaseResult.error ? `: ${supabaseResult.error}` : ""}`);
+        }
+
+        if (paymentUrl) {
+          integrationParts.push("link de pagamento recebido");
+        } else if (webhookResult.ok) {
+          integrationParts.push("enviado ao n8n");
+        } else if (webhookResult.skipped) {
+          integrationParts.push("n8n não configurado");
+        } else {
+          integrationParts.push(`falha no n8n${webhookResult.status ? ` (${webhookResult.status})` : ""}`);
+        }
+        record.integrationStatus = integrationParts.join("; ");
+
         const records = getRecords();
         records.unshift(record);
         saveRecords(records);
