@@ -44,7 +44,7 @@ git push -u origin main
 - Referência única de pagamento no formato `CGI-...-0000`, gerada a partir do código da inscrição e final do CPF.
 - Link individual de pagamento para cada inscrito, com `inscricao` e `referencia` nos parâmetros.
 - QR Code individual gerado a partir desse link, permitindo identificar automaticamente quem pagou.
-- Comprovante opcional apenas como apoio manual, não como fluxo principal.
+- Comprovante opcional com valor pago e ID/autenticação da transação, deixando o pagamento como `Em análise` até conferência.
 - Área administrativa com usuário e senha, totais, lista de inscritos, correção manual de status, importação de pagamentos e exportação CSV.
 - Links `mailto:` para preparar e-mail de inscrição, pagamento e aviso para administração.
 
@@ -93,13 +93,15 @@ Não use link público com `status=pago` para confirmar pagamento. Qualquer regr
 
 O fluxo principal não depende de comprovante. Cada inscrito recebe um link/QR Code individual com `inscricao` e `referencia`, e o pagamento deve ser identificado pelo retorno do provedor ou pelo webhook do n8n.
 
-O envio de comprovante foi mantido apenas como apoio manual:
+O envio de comprovante foi mantido como apoio de conferência:
 
 ```text
 index.html?acao=comprovante&inscricao=CGI-CODIGO
 ```
 
-Quando o inscrito abre esse link, a aba `Comprovante opcional` é aberta automaticamente e o código já fica preenchido. Ele informa o CPF e anexa o arquivo.
+Quando o inscrito abre esse link, a aba `Comprovante opcional` é aberta automaticamente e o código já fica preenchido. Ele informa o CPF, valor pago, ID/autenticação da transação e anexa o arquivo.
+
+O comprovante não marca pagamento como `Pago` automaticamente. Ele muda o status para `Em análise`, permitindo que a administração compare valor, referência, ID da transação e extrato antes de confirmar.
 
 Em produção, esse link deve apontar para a URL pública do site, não para `file:///...`, e os dados precisam ser salvos em banco central. Em página estática local, o comprovante só atualiza a inscrição se ela existir no mesmo navegador/localStorage.
 

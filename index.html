@@ -354,6 +354,11 @@
       color: var(--warn);
     }
 
+    .badge--review {
+      background: #e8edf8;
+      color: #2f4d7a;
+    }
+
     .success {
       display: none;
       margin-top: 18px;
@@ -711,11 +716,19 @@
                 <label for="proofCpf">CPF *</label>
                 <input id="proofCpf" name="proofCpf" inputmode="numeric" autocomplete="off" placeholder="000.000.000-00" maxlength="14" required>
               </div>
+              <div class="field">
+                <label for="proofAmount">Valor pago *</label>
+                <input id="proofAmount" name="proofAmount" inputmode="decimal" autocomplete="off" placeholder="Ex.: 50,00" required>
+              </div>
+              <div class="field">
+                <label for="proofTransactionId">ID da transação ou autenticação *</label>
+                <input id="proofTransactionId" name="proofTransactionId" autocomplete="off" placeholder="Código do banco, Pix ou cartão" required>
+              </div>
               <div class="field field--full">
                 <label for="latePaymentProof">Comprovante *</label>
                 <div class="upload-box">
                   <input id="latePaymentProof" name="latePaymentProof" type="file" accept="image/*,.pdf" required>
-                  <span class="hint">Depois do envio, a administração verá o nome do arquivo anexado na lista de inscritos.</span>
+                  <span class="hint">O comprovante precisa mostrar o valor pago, o código da inscrição ou referência e o ID/autenticação da transação. O envio deixa o pagamento em análise até a administração conferir.</span>
                 </div>
               </div>
             </div>
@@ -1070,6 +1083,9 @@
       record.paymentConfirmedAt = "";
       record.paymentConfirmationSource = "";
       record.paymentProof = { name: "", type: "", size: 0, data: "" };
+      record.proofAmount = "";
+      record.proofTransactionId = "";
+      record.proofSentAt = "";
       record.registrationLink = makeRegistrationLink(record);
       record.integrationStatus = "Local";
       return record;
@@ -1116,7 +1132,8 @@
 
       const records = getRecords();
       const paid = records.filter((item) => item.paymentStatus === "Pago").length;
-      const pending = records.length - paid;
+      const review = records.filter((item) => item.paymentStatus === "Em análise").length;
+      const pending = records.length - paid - review;
       const ride = records.filter((item) => item.needsRide === "Sim").length;
       const seats = records.reduce((total, item) => total + Number(item.seats || 0), 0);
       const churches = new Set(records.map((item) => item.church).filter(Boolean)).size;
@@ -1136,7 +1153,7 @@
       $("#adminTable").innerHTML = `
         <div class="empty">
           <strong>Resumo do evento:</strong>
-          ${records.length} inscrito(s), ${paid} pagamento(s) confirmado(s), ${pending} pendente(s), ${ride} pessoa(s) precisam de carona, ${seats} vaga(s) oferecida(s), ${churches} igreja(s)/unidade(s), ${individualLinks} link(s) individual(is) gerado(s).
+          ${records.length} inscrito(s), ${paid} pagamento(s) confirmado(s), ${review} comprovante(s) em análise, ${pending} pendente(s), ${ride} pessoa(s) precisam de carona, ${seats} vaga(s) oferecida(s), ${churches} igreja(s)/unidade(s), ${individualLinks} link(s) individual(is) gerado(s).
         </div>
         <table>
           <thead>
@@ -1169,12 +1186,14 @@
                   Oferece: <strong>${escapeHtml(record.hasCar)}</strong>${record.seats ? `, ${escapeHtml(record.seats)} vagas` : ""}
                 </td>
                 <td>
-                  <span class="badge ${record.paymentStatus === "Pago" ? "badge--paid" : "badge--pending"}">${escapeHtml(record.paymentStatus)}</span><br>
+                  <span class="badge ${record.paymentStatus === "Pago" ? "badge--paid" : record.paymentStatus === "Em análise" ? "badge--review" : "badge--pending"}">${escapeHtml(record.paymentStatus)}</span><br>
                   <small>Forma: ${escapeHtml(record.paymentMethod || "Não informada")}</small><br>
                   <small>Ref.: ${escapeHtml(record.paymentReference)}</small><br>
                   <a class="map-link" href="${escapeHtml(record.registrationLink)}" target="_blank" rel="noopener">Link individual</a><br>
                   <small>${record.paymentConfirmationSource ? `Fonte: ${escapeHtml(record.paymentConfirmationSource)}` : "Aguardando conciliação automática"}</small>
                   ${record.paymentProof && record.paymentProof.name ? `<br><small>Comprovante: ${escapeHtml(record.paymentProof.name)}</small>` : ""}
+                  ${record.proofAmount ? `<br><small>Valor informado: ${escapeHtml(record.proofAmount)}</small>` : ""}
+                  ${record.proofTransactionId ? `<br><small>ID/autenticação: ${escapeHtml(record.proofTransactionId)}</small>` : ""}
                 </td>
                 <td>
                   <div class="table-actions">
@@ -1197,7 +1216,7 @@
 
       const headers = [
         "id", "data", "nome", "email", "cpf", "igreja", "cep", "endereco",
-        "precisa_carona", "oferece_carona", "vagas", "forma_pagamento", "status_pagamento", "referencia_pagamento", "fonte_confirmacao", "comprovante", "integracao"
+        "precisa_carona", "oferece_carona", "vagas", "forma_pagamento", "status_pagamento", "referencia_pagamento", "valor_comprovante", "id_transacao", "fonte_confirmacao", "comprovante", "integracao"
       ];
       const rows = records.map((record) => [
         record.id,
@@ -1214,6 +1233,8 @@
         record.paymentMethod,
         record.paymentStatus,
         record.paymentReference,
+        record.proofAmount,
+        record.proofTransactionId,
         record.paymentConfirmationSource,
         record.paymentProof && record.paymentProof.name,
         record.integrationStatus
@@ -1407,13 +1428,21 @@
       }
 
       records[index].paymentProof = await readProofFile($("#latePaymentProof").files[0]);
+      records[index].proofAmount = $("#proofAmount").value.trim();
+      records[index].proofTransactionId = $("#proofTransactionId").value.trim();
       records[index].proofSentAt = new Date().toISOString();
+      if (records[index].paymentStatus !== "Pago") {
+        records[index].paymentStatus = "Em análise";
+        records[index].paymentConfirmationSource = "Comprovante enviado pelo inscrito, aguardando conferência";
+      }
       const webhookResult = await postToWebhook(CONFIG.n8nProofWebhookUrl, {
         event: "registration.proof_uploaded",
         registrationId: records[index].id,
         cpf: records[index].cpf,
         email: records[index].email,
         paymentReference: records[index].paymentReference,
+        proofAmount: records[index].proofAmount,
+        proofTransactionId: records[index].proofTransactionId,
         paymentProof: records[index].paymentProof
       });
       if (webhookResult.ok) {
@@ -1422,7 +1451,7 @@
         records[index].integrationStatus = `Falha ao enviar comprovante ao n8n${webhookResult.status ? ` (${webhookResult.status})` : ""}`;
       }
       saveRecords(records);
-      proofSuccessBox.innerHTML = `<strong>Comprovante recebido.</strong><p>A inscrição ${records[index].id} foi atualizada. A confirmação de pagamento será feita pela administração/conciliação automática.</p>`;
+      proofSuccessBox.innerHTML = `<strong>Comprovante recebido.</strong><p>A inscrição ${records[index].id} ficou em análise. A administração vai conferir o valor, a referência e o ID/autenticação da transação antes de confirmar o pagamento.</p>`;
       proofForm.reset();
     });
 
