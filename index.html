@@ -728,7 +728,7 @@
                 <label for="latePaymentProof">Comprovante *</label>
                 <div class="upload-box">
                   <input id="latePaymentProof" name="latePaymentProof" type="file" accept="image/*,.pdf" required>
-                  <span class="hint">O comprovante precisa mostrar o valor pago, o código da inscrição ou referência e o ID/autenticação da transação. O envio deixa o pagamento em análise até a administração conferir.</span>
+                  <span class="hint">O comprovante precisa mostrar o valor pago, o código da inscrição ou referência e o ID/autenticação da transação. Para imagens, o site tentará ler esses dados por OCR.</span>
                 </div>
               </div>
             </div>
@@ -798,6 +798,7 @@
     </div>
   </main>
 
+  <script src="https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js"></script>
   <script>
     const CONFIG = {
       churchName: "Congresso da Igreja",
@@ -991,6 +992,7 @@
       url.hash = "";
       url.searchParams.set("acao", "comprovante");
       url.searchParams.set("inscricao", record.id);
+      url.searchParams.set("referencia", record.paymentReference);
       return url.toString();
     }
 
@@ -1086,6 +1088,8 @@
       record.proofAmount = "";
       record.proofTransactionId = "";
       record.proofSentAt = "";
+      record.proofOcrStatus = "";
+      record.proofOcrMatches = "";
       record.registrationLink = makeRegistrationLink(record);
       record.integrationStatus = "Local";
       return record;
@@ -1103,6 +1107,7 @@
           <div>
             <p>Este QR Code é individual. Ele leva a referência <strong>${record.paymentReference}</strong> e a forma <strong>${record.paymentMethod || "Não informada"}</strong>, permitindo identificar automaticamente quem pagou quando houver provedor/n8n.</p>
             <p><a class="map-link" href="${record.registrationLink}" target="_blank" rel="noopener">Abrir link individual de pagamento</a></p>
+            <p><a class="map-link" href="${makeProofReturnLink(record)}">Enviar comprovante por link individual</a></p>
             <p class="hint">A confirmação de pagamento deve vir do provedor/n8n ou ser feita pela administração após conferência.</p>
             <p>
               <a class="btn btn--ghost" href="${mailtoFor(record, "registration")}">Preparar e-mail de inscrição</a>
@@ -1124,6 +1129,54 @@
         .replace(/'/g, "&#039;");
     }
 
+    function normalizeForOcrMatch(value) {
+      return String(value || "")
+        .normalize("NFD")
+        .replace(/[\u0300-\u036f]/g, "")
+        .toUpperCase()
+        .replace(/[^A-Z0-9]/g, "");
+    }
+
+    function amountDigits(value) {
+      return String(value || "").replace(/\D/g, "");
+    }
+
+    async function analyzeProofWithOcr(file, record, proofAmount, proofTransactionId) {
+      if (!file || !file.type.startsWith("image/")) {
+        return { status: "OCR não aplicado", matches: "Arquivo não é imagem" };
+      }
+      if (!window.Tesseract || typeof window.Tesseract.recognize !== "function") {
+        return { status: "OCR indisponível", matches: "Biblioteca de OCR não carregou" };
+      }
+
+      try {
+        const result = await window.Tesseract.recognize(file, "por+eng");
+        const text = result && result.data ? result.data.text : "";
+        const normalizedText = normalizeForOcrMatch(text);
+        const digitText = amountDigits(text);
+        const referenceFound = [record.id, record.paymentReference]
+          .some((value) => normalizedText.includes(normalizeForOcrMatch(value)));
+        const amount = amountDigits(proofAmount);
+        const amountFound = amount.length >= 2 && digitText.includes(amount);
+        const transactionFound = proofTransactionId
+          ? normalizedText.includes(normalizeForOcrMatch(proofTransactionId))
+          : false;
+
+        const matches = [
+          referenceFound ? "inscrição/referência encontrada" : "inscrição/referência não encontrada",
+          amountFound ? "valor encontrado" : "valor não encontrado",
+          transactionFound ? "ID/autenticação encontrado" : "ID/autenticação não encontrado"
+        ].join("; ");
+
+        return {
+          status: referenceFound && amountFound && transactionFound ? "Comprovante compatível" : "Em análise",
+          matches
+        };
+      } catch (error) {
+        return { status: "OCR falhou", matches: error.message || "Não foi possível ler o comprovante" };
+      }
+    }
+
     function renderAdmin() {
       if (!isAdminAuthenticated()) {
         $("#adminTable").innerHTML = "";
@@ -1132,7 +1185,7 @@
 
       const records = getRecords();
       const paid = records.filter((item) => item.paymentStatus === "Pago").length;
-      const review = records.filter((item) => item.paymentStatus === "Em análise").length;
+      const review = records.filter((item) => item.paymentStatus === "Em análise" || item.paymentStatus === "Comprovante compatível").length;
       const pending = records.length - paid - review;
       const ride = records.filter((item) => item.needsRide === "Sim").length;
       const seats = records.reduce((total, item) => total + Number(item.seats || 0), 0);
@@ -1186,7 +1239,7 @@
                   Oferece: <strong>${escapeHtml(record.hasCar)}</strong>${record.seats ? `, ${escapeHtml(record.seats)} vagas` : ""}
                 </td>
                 <td>
-                  <span class="badge ${record.paymentStatus === "Pago" ? "badge--paid" : record.paymentStatus === "Em análise" ? "badge--review" : "badge--pending"}">${escapeHtml(record.paymentStatus)}</span><br>
+                  <span class="badge ${record.paymentStatus === "Pago" ? "badge--paid" : record.paymentStatus === "Em análise" || record.paymentStatus === "Comprovante compatível" ? "badge--review" : "badge--pending"}">${escapeHtml(record.paymentStatus)}</span><br>
                   <small>Forma: ${escapeHtml(record.paymentMethod || "Não informada")}</small><br>
                   <small>Ref.: ${escapeHtml(record.paymentReference)}</small><br>
                   <a class="map-link" href="${escapeHtml(record.registrationLink)}" target="_blank" rel="noopener">Link individual</a><br>
@@ -1194,6 +1247,7 @@
                   ${record.paymentProof && record.paymentProof.name ? `<br><small>Comprovante: ${escapeHtml(record.paymentProof.name)}</small>` : ""}
                   ${record.proofAmount ? `<br><small>Valor informado: ${escapeHtml(record.proofAmount)}</small>` : ""}
                   ${record.proofTransactionId ? `<br><small>ID/autenticação: ${escapeHtml(record.proofTransactionId)}</small>` : ""}
+                  ${record.proofOcrStatus ? `<br><small>OCR: ${escapeHtml(record.proofOcrStatus)} (${escapeHtml(record.proofOcrMatches)})</small>` : ""}
                 </td>
                 <td>
                   <div class="table-actions">
@@ -1216,7 +1270,7 @@
 
       const headers = [
         "id", "data", "nome", "email", "cpf", "igreja", "cep", "endereco",
-        "precisa_carona", "oferece_carona", "vagas", "forma_pagamento", "status_pagamento", "referencia_pagamento", "valor_comprovante", "id_transacao", "fonte_confirmacao", "comprovante", "integracao"
+        "precisa_carona", "oferece_carona", "vagas", "forma_pagamento", "status_pagamento", "referencia_pagamento", "valor_comprovante", "id_transacao", "ocr_status", "ocr_resultado", "fonte_confirmacao", "comprovante", "integracao"
       ];
       const rows = records.map((record) => [
         record.id,
@@ -1235,6 +1289,8 @@
         record.paymentReference,
         record.proofAmount,
         record.proofTransactionId,
+        record.proofOcrStatus,
+        record.proofOcrMatches,
         record.paymentConfirmationSource,
         record.paymentProof && record.paymentProof.name,
         record.integrationStatus
@@ -1297,6 +1353,11 @@
       showTab("comprovante");
       const id = params.get("inscricao");
       if (id) $("#proofRegistrationId").value = id;
+      const reference = params.get("referencia");
+      if (reference) {
+        proofSuccessBox.classList.add("is-visible");
+        proofSuccessBox.innerHTML = `<strong>Link individual localizado.</strong><p>Referência esperada: <strong>${escapeHtml(reference)}</strong>. O OCR tentará procurar essa referência no comprovante enviado.</p>`;
+      }
     }
 
     function goToAdminPanel() {
@@ -1427,13 +1488,19 @@
         return;
       }
 
+      proofSuccessBox.innerHTML = `<strong>Lendo comprovante.</strong><p>O OCR está tentando localizar inscrição/referência, valor e ID/autenticação no arquivo enviado.</p>`;
       records[index].paymentProof = await readProofFile($("#latePaymentProof").files[0]);
       records[index].proofAmount = $("#proofAmount").value.trim();
       records[index].proofTransactionId = $("#proofTransactionId").value.trim();
       records[index].proofSentAt = new Date().toISOString();
+      const ocrResult = await analyzeProofWithOcr($("#latePaymentProof").files[0], records[index], records[index].proofAmount, records[index].proofTransactionId);
+      records[index].proofOcrStatus = ocrResult.status;
+      records[index].proofOcrMatches = ocrResult.matches;
       if (records[index].paymentStatus !== "Pago") {
-        records[index].paymentStatus = "Em análise";
-        records[index].paymentConfirmationSource = "Comprovante enviado pelo inscrito, aguardando conferência";
+        records[index].paymentStatus = ocrResult.status === "Comprovante compatível" ? "Comprovante compatível" : "Em análise";
+        records[index].paymentConfirmationSource = ocrResult.status === "Comprovante compatível"
+          ? "OCR encontrou dados compatíveis, aguardando confirmação da administração"
+          : "Comprovante enviado pelo inscrito, aguardando conferência";
       }
       const webhookResult = await postToWebhook(CONFIG.n8nProofWebhookUrl, {
         event: "registration.proof_uploaded",
@@ -1443,6 +1510,8 @@
         paymentReference: records[index].paymentReference,
         proofAmount: records[index].proofAmount,
         proofTransactionId: records[index].proofTransactionId,
+        proofOcrStatus: records[index].proofOcrStatus,
+        proofOcrMatches: records[index].proofOcrMatches,
         paymentProof: records[index].paymentProof
       });
       if (webhookResult.ok) {
@@ -1451,7 +1520,7 @@
         records[index].integrationStatus = `Falha ao enviar comprovante ao n8n${webhookResult.status ? ` (${webhookResult.status})` : ""}`;
       }
       saveRecords(records);
-      proofSuccessBox.innerHTML = `<strong>Comprovante recebido.</strong><p>A inscrição ${records[index].id} ficou em análise. A administração vai conferir o valor, a referência e o ID/autenticação da transação antes de confirmar o pagamento.</p>`;
+      proofSuccessBox.innerHTML = `<strong>Comprovante recebido.</strong><p>Status: <strong>${records[index].paymentStatus}</strong>. OCR: ${escapeHtml(records[index].proofOcrMatches)}. A administração ainda deve conferir antes de marcar como pago.</p>`;
       proofForm.reset();
     });
 
