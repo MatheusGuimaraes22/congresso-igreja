@@ -785,7 +785,6 @@
       adminEmail: "administracao@igreja.com",
       adminUser: "admin",
       adminPassword: "troque-esta-senha",
-      paymentReturnSecret: "troque-este-token",
       storageKey: "congressoIgrejaInscricoes"
     };
 
@@ -959,16 +958,6 @@
       return url.toString();
     }
 
-    function makeLocalPaymentReturnLink(record) {
-      const url = new URL(window.location.href);
-      url.search = "";
-      url.hash = "";
-      url.searchParams.set("inscricao", record.id);
-      url.searchParams.set("status", "pago");
-      url.searchParams.set("token", CONFIG.paymentReturnSecret);
-      return url.toString();
-    }
-
     function makeQrUrl(link) {
       return `https://api.qrserver.com/v1/create-qr-code/?size=220x220&data=${encodeURIComponent(link)}`;
     }
@@ -1086,7 +1075,7 @@
           <div>
             <p>Este QR Code é individual. Ele leva a referência <strong>${record.paymentReference}</strong>, permitindo identificar automaticamente quem pagou.</p>
             <p><a class="map-link" href="${record.registrationLink}" target="_blank" rel="noopener">Abrir link individual de pagamento</a></p>
-            <p class="hint">Simulação local de retorno pago: <a class="map-link" href="${makeLocalPaymentReturnLink(record)}">marcar esta inscrição como paga</a></p>
+            <p class="hint">A confirmação de pagamento deve vir do provedor/n8n ou ser feita pela administração após conferência.</p>
             <p>
               <a class="btn btn--ghost" href="${mailtoFor(record, "registration")}">Preparar e-mail de inscrição</a>
               <a class="btn btn--ghost" href="${mailtoFor(record, "admin")}">Avisar administração</a>
@@ -1255,23 +1244,6 @@
 
       saveRecords(records);
       alert(`${confirmed} pagamento(s) confirmado(s) automaticamente.`);
-    }
-
-    function applyPaymentReturnFromUrl() {
-      const params = new URLSearchParams(window.location.search);
-      const id = params.get("inscricao");
-      const status = params.get("status");
-      const token = params.get("token");
-      if (!id || status !== "pago" || token !== CONFIG.paymentReturnSecret) return;
-
-      const records = getRecords();
-      const record = records.find((item) => item.id === id);
-      if (!record) return;
-
-      record.paymentStatus = "Pago";
-      record.paymentConfirmedAt = new Date().toISOString();
-      record.paymentConfirmationSource = "Retorno automático do link de pagamento";
-      saveRecords(records);
     }
 
     function showTab(tabName) {
@@ -1517,7 +1489,6 @@
       setAdminAuthenticated(false);
     });
 
-    applyPaymentReturnFromUrl();
     applyProofReturnFromUrl();
     if (!applyAdminRouteFromUrl()) {
       updateAdminAccess();

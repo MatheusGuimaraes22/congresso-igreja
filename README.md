@@ -62,12 +62,11 @@ const CONFIG = {
   adminEmail: "administracao@igreja.com",
   adminUser: "admin",
   adminPassword: "troque-esta-senha",
-  paymentReturnSecret: "troque-este-token",
   storageKey: "congressoIgrejaInscricoes"
 };
 ```
 
-Troque `churchPaymentUrl` pelo link real de pagamento/confirmação da igreja, `adminEmail` pelo e-mail da secretaria/administração e `paymentReturnSecret` por um token próprio.
+Troque `churchPaymentUrl` pelo link real de pagamento/confirmação da igreja e `adminEmail` pelo e-mail da secretaria/administração.
 
 Troque também `adminUser` e `adminPassword`. Esta proteção é suficiente apenas para protótipo/local, porque usuário e senha ficam no HTML. Em produção, a área administrativa deve usar login no backend, Supabase Auth, Firebase Auth, n8n com autenticação, Cloudflare Access ou outro controle no servidor.
 
@@ -80,18 +79,12 @@ Se o webhook de inscrição retornar JSON com `paymentUrl`, `payment_url`, `chec
 
 ## Confirmação automática de pagamento
 
-A página já está preparada para duas formas de identificação:
+A página está preparada para identificar pagamentos por conferência administrativa ou por automação externa:
 
 1. **Importação de extrato/relatório**: na área `Administração`, clique em `Importar pagamentos` e envie um `.csv` ou `.txt` exportado do banco/provedor. Se o arquivo contiver o código da inscrição, a referência de pagamento, CPF ou e-mail, a inscrição será marcada como `Pago` automaticamente.
-2. **Retorno de pagamento por link**: um provedor de pagamento pode chamar/abrir a página com parâmetros:
+2. **Webhook no n8n/backend**: o provedor confirma o pagamento no servidor, o n8n procura a inscrição pela referência individual e atualiza a base central como `Pago`.
 
-```text
-index.html?inscricao=CGI-CODIGO&status=pago&token=troque-este-token
-```
-
-Quando o token for igual ao `paymentReturnSecret`, a inscrição correspondente será marcada como `Pago`.
-
-Para produção real, o melhor desenho é usar webhook no servidor: o provedor confirma o pagamento, o backend procura a inscrição pela referência e atualiza o banco. A página estática não consegue receber webhooks sozinha.
+Não use link público com `status=pago` para confirmar pagamento. Qualquer regra de confirmação precisa ficar fora do HTML, no n8n, backend ou painel administrativo protegido. A página estática não consegue receber webhooks sozinha.
 
 ## Comprovante opcional
 
