@@ -7,11 +7,12 @@ Use os dois:
 1. A página envia a inscrição para um webhook do n8n.
 2. O n8n salva a inscrição em uma base central.
 3. O n8n cria o checkout no PagSeguro/PagBank usando a referência da inscrição.
-4. O n8n responde para a página com a URL de pagamento.
+4. Para Pix, cartão de crédito ou cartão de débito, o n8n responde para a página com a URL de pagamento do provedor.
 5. A página gera o QR Code usando essa URL.
 6. O PagSeguro/PagBank envia webhook de pagamento para o n8n.
 7. O n8n localiza a inscrição pela referência e marca como `Pago`.
 8. O n8n envia e-mail de inscrição e e-mail de confirmação de pagamento.
+9. Para dinheiro, o n8n apenas registra a inscrição como `Pendente`; a administração confirma no painel quando receber o valor.
 
 ## Webhooks no n8n
 

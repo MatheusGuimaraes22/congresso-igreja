@@ -645,10 +645,19 @@
               <legend>Pagamento</legend>
               <div class="grid">
                 <div class="field field--full">
-                  <label>Link individual de pagamento</label>
+                  <label>Forma de pagamento *</label>
+                  <div class="radio-row">
+                    <label class="choice"><input type="radio" name="paymentMethod" value="Pix" required> Pix</label>
+                    <label class="choice"><input type="radio" name="paymentMethod" value="Cartão de crédito" required> Cartão de crédito</label>
+                    <label class="choice"><input type="radio" name="paymentMethod" value="Cartão de débito" required> Cartão de débito</label>
+                    <label class="choice"><input type="radio" name="paymentMethod" value="Dinheiro" required> Dinheiro</label>
+                  </div>
+                </div>
+                <div class="field field--full">
+                  <label>Link individual, QR Code ou referência</label>
                   <div class="upload-box">
                     <strong>O link e o QR Code serão gerados automaticamente após finalizar a inscrição.</strong>
-                    <span class="hint">Cada inscrito recebe um link individual com código e referência própria. Assim, quando o pagamento for confirmado pelo n8n/PagSeguro, a administração sabe exatamente qual inscrito pagou, sem precisar de comprovante.</span>
+                    <span class="hint">Pix, crédito e débito podem ser conciliados automaticamente por provedor/n8n. Pagamento em dinheiro deve ser confirmado pela administração no recebimento.</span>
                   </div>
                 </div>
               </div>
@@ -954,6 +963,7 @@
       }
       url.searchParams.set("inscricao", record.id);
       url.searchParams.set("referencia", record.paymentReference);
+      url.searchParams.set("forma", record.paymentMethod || "");
       url.searchParams.set("nome", record.fullName);
       return url.toString();
     }
@@ -984,7 +994,7 @@
     function mailtoFor(record, type) {
       if (type === "admin") {
         const subject = `Nova inscrição - ${record.fullName}`;
-        const body = `Nova inscrição recebida para ${CONFIG.churchName}.\n\nNome: ${record.fullName}\nE-mail: ${record.email}\nCPF: ${record.cpf}\nIgreja: ${record.church}\nEndereço: ${buildAddress(record)}\nPrecisa de carona: ${record.needsRide}\nOferece carona: ${record.hasCar}${record.seats ? ` (${record.seats} vagas)` : ""}\nStatus de pagamento: ${record.paymentStatus}\nCódigo: ${record.id}\nReferência de pagamento: ${record.paymentReference}\nLink: ${record.registrationLink}`;
+        const body = `Nova inscrição recebida para ${CONFIG.churchName}.\n\nNome: ${record.fullName}\nE-mail: ${record.email}\nCPF: ${record.cpf}\nIgreja: ${record.church}\nEndereço: ${buildAddress(record)}\nPrecisa de carona: ${record.needsRide}\nOferece carona: ${record.hasCar}${record.seats ? ` (${record.seats} vagas)` : ""}\nForma de pagamento: ${record.paymentMethod || "Não informada"}\nStatus de pagamento: ${record.paymentStatus}\nCódigo: ${record.id}\nReferência de pagamento: ${record.paymentReference}\nLink: ${record.registrationLink}`;
         return `mailto:${encodeURIComponent(CONFIG.adminEmail)}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
       }
 
@@ -994,7 +1004,7 @@
         : `Inscrição recebida - ${CONFIG.churchName}`;
       const body = isPaid
         ? `Olá, ${record.fullName}.\n\nRecebemos a confirmação do seu pagamento para o ${CONFIG.churchName}.\n\nSeu código de inscrição: ${record.id}\n\nNos vemos no congresso.`
-        : `Olá, ${record.fullName}.\n\nSua inscrição no ${CONFIG.churchName} foi recebida.\n\nCódigo de inscrição: ${record.id}\nReferência de pagamento: ${record.paymentReference}\nLink/QR Code: ${record.registrationLink}\n\nUse o QR Code/link da igreja. A confirmação será feita automaticamente quando o pagamento for localizado pela referência.`;
+        : `Olá, ${record.fullName}.\n\nSua inscrição no ${CONFIG.churchName} foi recebida.\n\nCódigo de inscrição: ${record.id}\nForma de pagamento: ${record.paymentMethod || "Não informada"}\nReferência de pagamento: ${record.paymentReference}\nLink/QR Code: ${record.registrationLink}\n\nUse a referência individual no pagamento. Pix, crédito e débito podem ser confirmados automaticamente pelo provedor/n8n; dinheiro será confirmado pela administração.`;
 
       return `mailto:${encodeURIComponent(record.email)}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
     }
@@ -1054,6 +1064,7 @@
       record.cpf = formatCpf(record.cpf);
       record.cep = formatCep(record.cep);
       record.seats = record.hasCar === "Sim" ? record.seats : "";
+      record.paymentMethod = record.paymentMethod || "Não informada";
       record.paymentStatus = "Pendente";
       record.paymentReference = makePaymentReference(record);
       record.paymentConfirmedAt = "";
@@ -1069,11 +1080,12 @@
       successBox.innerHTML = `
         <strong>Inscrição realizada.</strong>
         <p>Código: <strong>${record.id}</strong>. Referência de pagamento: <strong>${record.paymentReference}</strong>.</p>
+        <p>Forma de pagamento escolhida: <strong>${record.paymentMethod || "Não informada"}</strong>.</p>
         <p>Status da integração: <strong>${record.integrationStatus || "Local"}</strong>.</p>
         <div class="qr-wrap">
           <img alt="QR Code do pagamento individual" src="${makeQrUrl(record.registrationLink)}">
           <div>
-            <p>Este QR Code é individual. Ele leva a referência <strong>${record.paymentReference}</strong>, permitindo identificar automaticamente quem pagou.</p>
+            <p>Este QR Code é individual. Ele leva a referência <strong>${record.paymentReference}</strong> e a forma <strong>${record.paymentMethod || "Não informada"}</strong>, permitindo identificar automaticamente quem pagou quando houver provedor/n8n.</p>
             <p><a class="map-link" href="${record.registrationLink}" target="_blank" rel="noopener">Abrir link individual de pagamento</a></p>
             <p class="hint">A confirmação de pagamento deve vir do provedor/n8n ou ser feita pela administração após conferência.</p>
             <p>
@@ -1158,6 +1170,7 @@
                 </td>
                 <td>
                   <span class="badge ${record.paymentStatus === "Pago" ? "badge--paid" : "badge--pending"}">${escapeHtml(record.paymentStatus)}</span><br>
+                  <small>Forma: ${escapeHtml(record.paymentMethod || "Não informada")}</small><br>
                   <small>Ref.: ${escapeHtml(record.paymentReference)}</small><br>
                   <a class="map-link" href="${escapeHtml(record.registrationLink)}" target="_blank" rel="noopener">Link individual</a><br>
                   <small>${record.paymentConfirmationSource ? `Fonte: ${escapeHtml(record.paymentConfirmationSource)}` : "Aguardando conciliação automática"}</small>
@@ -1184,7 +1197,7 @@
 
       const headers = [
         "id", "data", "nome", "email", "cpf", "igreja", "cep", "endereco",
-        "precisa_carona", "oferece_carona", "vagas", "status_pagamento", "referencia_pagamento", "fonte_confirmacao", "comprovante", "integracao"
+        "precisa_carona", "oferece_carona", "vagas", "forma_pagamento", "status_pagamento", "referencia_pagamento", "fonte_confirmacao", "comprovante", "integracao"
       ];
       const rows = records.map((record) => [
         record.id,
@@ -1198,6 +1211,7 @@
         record.needsRide,
         record.hasCar,
         record.seats,
+        record.paymentMethod,
         record.paymentStatus,
         record.paymentReference,
         record.paymentConfirmationSource,

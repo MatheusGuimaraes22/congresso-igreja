@@ -39,6 +39,7 @@ git push -u origin main
 - Busca de endereço pelo CEP usando ViaCEP.
 - Link para abrir o endereço no Google Maps.
 - Perguntas sobre carona, carro disponível e quantidade de vagas.
+- Escolha da forma de pagamento: Pix, cartão de crédito, cartão de débito ou dinheiro.
 - Pagamento sempre nasce como `Pendente`; o inscrito não escolhe se pagou.
 - Referência única de pagamento no formato `CGI-...-0000`, gerada a partir do código da inscrição e final do CPF.
 - Link individual de pagamento para cada inscrito, com `inscricao` e `referencia` nos parâmetros.
@@ -83,6 +84,8 @@ A página está preparada para identificar pagamentos por conferência administr
 
 1. **Importação de extrato/relatório**: na área `Administração`, clique em `Importar pagamentos` e envie um `.csv` ou `.txt` exportado do banco/provedor. Se o arquivo contiver o código da inscrição, a referência de pagamento, CPF ou e-mail, a inscrição será marcada como `Pago` automaticamente.
 2. **Webhook no n8n/backend**: o provedor confirma o pagamento no servidor, o n8n procura a inscrição pela referência individual e atualiza a base central como `Pago`.
+
+Pix, cartão de crédito e cartão de débito podem ser confirmados automaticamente quando forem feitos por um provedor com webhook, como PagBank/PagSeguro, Mercado Pago ou Asaas. Pagamento em dinheiro não tem confirmação automática externa: precisa ser registrado pela tesouraria/administração no painel quando o valor for recebido.
 
 Não use link público com `status=pago` para confirmar pagamento. Qualquer regra de confirmação precisa ficar fora do HTML, no n8n, backend ou painel administrativo protegido. A página estática não consegue receber webhooks sozinha.
 
