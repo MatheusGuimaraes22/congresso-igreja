@@ -1,0 +1,4 @@
+.vercel/
+server.err.log
+server.out.log
+*.log

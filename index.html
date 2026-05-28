@@ -1,0 +1,1527 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Inscricao | Congresso da Igreja</title>
+  <style>
+    :root {
+      color-scheme: light;
+      --bg: #f6f3ed;
+      --ink: #1f2421;
+      --muted: #626962;
+      --line: #d9d2c6;
+      --paper: #fffdf8;
+      --paper-2: #f0efe7;
+      --primary: #22577a;
+      --primary-2: #163c54;
+      --accent: #d85c38;
+      --ok: #28724f;
+      --warn: #9a5a00;
+      --danger: #9b2f2f;
+      --shadow: 0 18px 60px rgba(31, 36, 33, .12);
+      font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    }
+
+    * {
+      box-sizing: border-box;
+      user-select: text;
+    }
+
+    button,
+    input,
+    select,
+    textarea,
+    label,
+    a {
+      pointer-events: auto;
+    }
+
+    body {
+      margin: 0;
+      background: var(--bg);
+      color: var(--ink);
+      line-height: 1.45;
+    }
+
+    button, input, select, textarea {
+      font: inherit;
+    }
+
+    button {
+      border: 0;
+      cursor: pointer;
+    }
+
+    .hero {
+      min-height: 48vh;
+      display: grid;
+      align-items: end;
+      background:
+        linear-gradient(90deg, rgba(18, 30, 28, .82), rgba(18, 30, 28, .48)),
+        url("https://images.unsplash.com/photo-1494526585095-c41746248156?auto=format&fit=crop&w=1800&q=80") center/cover;
+      color: #fff;
+      padding: 32px 20px 44px;
+    }
+
+    .hero__inner,
+    .wrap {
+      width: min(1160px, 100%);
+      margin: 0 auto;
+    }
+
+    .eyebrow {
+      margin: 0 0 12px;
+      font-size: 14px;
+      text-transform: uppercase;
+      letter-spacing: .12em;
+      color: rgba(255, 255, 255, .82);
+    }
+
+    h1 {
+      max-width: 850px;
+      margin: 0;
+      font-size: clamp(42px, 6vw, 82px);
+      line-height: .94;
+      letter-spacing: 0;
+    }
+
+    .hero p {
+      max-width: 680px;
+      margin: 22px 0 0;
+      font-size: 19px;
+      color: rgba(255, 255, 255, .88);
+    }
+
+    main {
+      padding: 28px 20px 64px;
+    }
+
+    .tabs {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      margin-bottom: 18px;
+    }
+
+    .tab {
+      min-height: 44px;
+      padding: 0 18px;
+      border-radius: 8px;
+      background: var(--paper-2);
+      color: var(--ink);
+      border: 1px solid var(--line);
+      font-weight: 700;
+    }
+
+    .tab[aria-selected="true"] {
+      background: var(--primary);
+      color: #fff;
+      border-color: var(--primary);
+    }
+
+    .layout {
+      display: grid;
+      grid-template-columns: minmax(0, 1.35fr) minmax(320px, .65fr);
+      gap: 20px;
+      align-items: start;
+    }
+
+    .panel {
+      background: var(--paper);
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      box-shadow: var(--shadow);
+    }
+
+    .panel__head {
+      padding: 22px 24px 16px;
+      border-bottom: 1px solid var(--line);
+    }
+
+    .panel__head h2,
+    .side h2 {
+      margin: 0;
+      font-size: 26px;
+      letter-spacing: 0;
+    }
+
+    .panel__head p,
+    .side p,
+    .hint {
+      color: var(--muted);
+    }
+
+    .panel__head p {
+      margin: 8px 0 0;
+    }
+
+    form {
+      padding: 24px;
+    }
+
+    fieldset {
+      border: 0;
+      padding: 0;
+      margin: 0 0 26px;
+    }
+
+    legend {
+      width: 100%;
+      margin-bottom: 14px;
+      padding-bottom: 10px;
+      border-bottom: 1px solid var(--line);
+      font-weight: 800;
+      font-size: 18px;
+    }
+
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(12, minmax(0, 1fr));
+      gap: 14px;
+    }
+
+    .field {
+      grid-column: span 6;
+      display: grid;
+      gap: 7px;
+    }
+
+    .field--full { grid-column: 1 / -1; }
+    .field--third { grid-column: span 4; }
+    .field--small { grid-column: span 3; }
+
+    label {
+      font-size: 13px;
+      font-weight: 800;
+      color: #303630;
+    }
+
+    input, select, textarea {
+      width: 100%;
+      min-height: 46px;
+      border: 1px solid #c8c1b6;
+      border-radius: 8px;
+      background: #fff;
+      color: var(--ink);
+      padding: 10px 12px;
+      outline: none;
+    }
+
+    textarea {
+      resize: vertical;
+      min-height: 84px;
+    }
+
+    input:focus, select:focus, textarea:focus {
+      border-color: var(--primary);
+      box-shadow: 0 0 0 3px rgba(34, 87, 122, .16);
+    }
+
+    .radio-row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+    }
+
+    .choice {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      min-height: 44px;
+      padding: 10px 12px;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: #fff;
+      font-weight: 700;
+    }
+
+    .choice input {
+      width: 18px;
+      min-height: 18px;
+      accent-color: var(--primary);
+    }
+
+    .upload-box {
+      display: grid;
+      gap: 8px;
+      padding: 14px;
+      border: 1px dashed #aaa296;
+      border-radius: 8px;
+      background: #fff;
+    }
+
+    .password-wrap {
+      display: grid;
+      grid-template-columns: 1fr auto;
+      gap: 8px;
+      align-items: center;
+    }
+
+    .password-wrap input {
+      min-width: 0;
+    }
+
+    .icon-btn {
+      width: 46px;
+      min-height: 46px;
+      border-radius: 8px;
+      background: #e7eef2;
+      color: var(--primary);
+      font-size: 18px;
+      font-weight: 900;
+    }
+
+    .actions {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      align-items: center;
+      padding-top: 6px;
+    }
+
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      min-height: 46px;
+      padding: 0 18px;
+      border-radius: 8px;
+      font-weight: 800;
+      text-decoration: none;
+    }
+
+    .btn--primary {
+      background: var(--primary);
+      color: #fff;
+    }
+
+    .btn--primary:hover { background: var(--primary-2); }
+
+    .btn--ghost {
+      color: var(--primary);
+      background: #e7eef2;
+    }
+
+    .btn--danger {
+      color: #fff;
+      background: var(--danger);
+    }
+
+    .side {
+      padding: 22px;
+      position: sticky;
+      top: 16px;
+    }
+
+    .status-list {
+      display: grid;
+      gap: 10px;
+      margin-top: 18px;
+    }
+
+    .status-item {
+      display: flex;
+      justify-content: space-between;
+      gap: 12px;
+      padding: 12px;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: #fff;
+    }
+
+    .badge {
+      display: inline-flex;
+      align-items: center;
+      min-height: 28px;
+      padding: 4px 9px;
+      border-radius: 999px;
+      font-size: 12px;
+      font-weight: 900;
+      text-transform: uppercase;
+      letter-spacing: .04em;
+      white-space: nowrap;
+    }
+
+    .badge--paid {
+      background: #dff3e8;
+      color: var(--ok);
+    }
+
+    .badge--pending {
+      background: #fff0d7;
+      color: var(--warn);
+    }
+
+    .success {
+      display: none;
+      margin-top: 18px;
+      padding: 18px;
+      border: 1px solid #a5d6ba;
+      border-radius: 8px;
+      background: #eefaf3;
+    }
+
+    .success.is-visible {
+      display: block;
+    }
+
+    .qr-wrap {
+      display: grid;
+      grid-template-columns: 150px 1fr;
+      gap: 16px;
+      align-items: center;
+      margin-top: 12px;
+    }
+
+    .qr-wrap img {
+      width: 150px;
+      height: 150px;
+      border: 8px solid #fff;
+      border-radius: 8px;
+    }
+
+    .admin {
+      display: none;
+    }
+
+    .admin.is-visible {
+      display: block;
+    }
+
+    .proof-section {
+      display: none;
+    }
+
+    .proof-section.is-visible {
+      display: block;
+    }
+
+    .admin-toolbar {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      align-items: center;
+      justify-content: space-between;
+      padding: 18px 24px;
+      border-bottom: 1px solid var(--line);
+    }
+
+    .admin-login {
+      padding: 24px;
+      border-bottom: 1px solid var(--line);
+    }
+
+    .admin-login.is-hidden,
+    .admin-private.is-hidden {
+      display: none;
+    }
+
+    .stats {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+    }
+
+    .stat {
+      min-width: 118px;
+      padding: 10px 12px;
+      border-radius: 8px;
+      background: #fff;
+      border: 1px solid var(--line);
+    }
+
+    .stat strong {
+      display: block;
+      font-size: 24px;
+    }
+
+    .table-wrap {
+      overflow-x: auto;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      min-width: 980px;
+    }
+
+    th, td {
+      padding: 12px;
+      border-bottom: 1px solid var(--line);
+      text-align: left;
+      vertical-align: top;
+      font-size: 14px;
+    }
+
+    th {
+      background: #f4f1ea;
+      font-size: 12px;
+      text-transform: uppercase;
+      letter-spacing: .06em;
+      color: #4c524c;
+    }
+
+    .table-actions {
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+    }
+
+    .mini {
+      min-height: 34px;
+      padding: 0 10px;
+      border-radius: 8px;
+      font-size: 12px;
+      font-weight: 800;
+      background: #e7eef2;
+      color: var(--primary);
+    }
+
+    .empty {
+      padding: 24px;
+      color: var(--muted);
+    }
+
+    .map-link {
+      color: var(--primary);
+      font-weight: 800;
+    }
+
+    @media (max-width: 920px) {
+      .layout {
+        grid-template-columns: 1fr;
+      }
+
+      .side {
+        position: static;
+      }
+    }
+
+    @media (max-width: 720px) {
+      .hero {
+        min-height: 42vh;
+      }
+
+      .panel__head,
+      form,
+      .side,
+      .proof-form,
+      .admin-toolbar {
+        padding-left: 16px;
+        padding-right: 16px;
+      }
+
+      .field,
+      .field--third,
+      .field--small {
+        grid-column: 1 / -1;
+      }
+
+      .qr-wrap {
+        grid-template-columns: 1fr;
+      }
+    }
+  </style>
+</head>
+<body>
+  <header class="hero">
+    <div class="hero__inner">
+      <p class="eyebrow">Congresso da Igreja</p>
+      <h1>Inscricao para o congresso</h1>
+      <p>Preencha seus dados, informe transporte e acompanhe o QR Code de pagamento/confirmacao fornecido pela igreja.</p>
+    </div>
+  </header>
+
+  <main>
+    <div class="wrap">
+      <nav class="tabs" aria-label="Areas da pagina">
+        <button class="tab" type="button" aria-selected="true" data-tab="inscricao">Inscricao</button>
+        <button class="tab" type="button" aria-selected="false" data-tab="comprovante">Comprovante opcional</button>
+        <button class="tab" type="button" aria-selected="false" data-tab="admin">Administracao</button>
+      </nav>
+
+      <section id="inscricao" class="layout">
+        <div class="panel">
+          <div class="panel__head">
+            <h2>Dados do inscrito</h2>
+            <p>Campos obrigatorios marcados com asterisco. O endereco e preenchido pelo CEP quando o servico ViaCEP estiver disponivel.</p>
+          </div>
+
+          <form id="registrationForm">
+            <fieldset>
+              <legend>Identificacao</legend>
+              <div class="grid">
+                <div class="field field--full">
+                  <label for="fullName">Nome completo *</label>
+                  <input id="fullName" name="fullName" autocomplete="name" required>
+                </div>
+                <div class="field">
+                  <label for="email">E-mail *</label>
+                  <input id="email" name="email" type="email" autocomplete="email" required>
+                </div>
+                <div class="field">
+                  <label for="cpf">CPF *</label>
+                  <input id="cpf" name="cpf" inputmode="numeric" autocomplete="off" placeholder="000.000.000-00" maxlength="14" required>
+                </div>
+                <div class="field field--full">
+                  <label for="church">Unidade ou nome da igreja *</label>
+                  <input id="church" name="church" autocomplete="organization" required>
+                </div>
+              </div>
+            </fieldset>
+
+            <fieldset>
+              <legend>Endereco</legend>
+              <div class="grid">
+                <div class="field field--third">
+                  <label for="cep">CEP *</label>
+                  <input id="cep" name="cep" inputmode="numeric" autocomplete="postal-code" placeholder="00000-000" maxlength="9" required>
+                  <span class="hint" id="cepHint">Digite o CEP para buscar rua, bairro, cidade e UF.</span>
+                </div>
+                <div class="field">
+                  <label for="street">Rua *</label>
+                  <input id="street" name="street" autocomplete="address-line1" required>
+                </div>
+                <div class="field field--small">
+                  <label for="number">Numero *</label>
+                  <input id="number" name="number" autocomplete="address-line2" required>
+                </div>
+                <div class="field field--third">
+                  <label for="district">Bairro *</label>
+                  <input id="district" name="district" required>
+                </div>
+                <div class="field field--third">
+                  <label for="city">Cidade *</label>
+                  <input id="city" name="city" autocomplete="address-level2" required>
+                </div>
+                <div class="field field--third">
+                  <label for="state">UF *</label>
+                  <input id="state" name="state" autocomplete="address-level1" maxlength="2" required>
+                </div>
+                <div class="field field--full">
+                  <label for="complement">Complemento</label>
+                  <input id="complement" name="complement" autocomplete="address-line3">
+                </div>
+              </div>
+            </fieldset>
+
+            <fieldset>
+              <legend>Transporte</legend>
+              <div class="grid">
+                <div class="field field--full">
+                  <label>Vai precisar de carona para o congresso? *</label>
+                  <div class="radio-row">
+                    <label class="choice"><input type="radio" name="needsRide" value="Sim" required> Sim</label>
+                    <label class="choice"><input type="radio" name="needsRide" value="Nao" required> Nao</label>
+                  </div>
+                </div>
+                <div class="field field--full">
+                  <label>Tem carro e pode disponibilizar carona? *</label>
+                  <div class="radio-row">
+                    <label class="choice"><input type="radio" name="hasCar" value="Sim" required> Sim</label>
+                    <label class="choice"><input type="radio" name="hasCar" value="Nao" required> Nao</label>
+                  </div>
+                </div>
+                <div class="field field--third" id="seatsField" hidden>
+                  <label for="seats">Vagas disponiveis</label>
+                  <select id="seats" name="seats">
+                    <option value="">Selecione</option>
+                    <option value="1">1 vaga</option>
+                    <option value="2">2 vagas</option>
+                    <option value="3">3 vagas</option>
+                    <option value="4">4 vagas</option>
+                  </select>
+                </div>
+                <div class="field field--full">
+                  <label for="notes">Observacoes</label>
+                  <textarea id="notes" name="notes" placeholder="Ex.: restricao de horario, ponto de encontro, necessidade especial."></textarea>
+                </div>
+              </div>
+            </fieldset>
+
+            <fieldset>
+              <legend>Pagamento</legend>
+              <div class="grid">
+                <div class="field field--full">
+                  <label>Link individual de pagamento</label>
+                  <div class="upload-box">
+                    <strong>O link e o QR Code serao gerados automaticamente apos finalizar a inscricao.</strong>
+                    <span class="hint">Cada inscrito recebe um link individual com codigo e referencia propria. Assim, quando o pagamento for confirmado pelo n8n/PagSeguro, a administracao sabe exatamente qual inscrito pagou, sem precisar de comprovante.</span>
+                  </div>
+                </div>
+              </div>
+            </fieldset>
+
+            <div class="actions">
+              <button class="btn btn--primary" type="submit">Finalizar inscricao</button>
+              <button class="btn btn--ghost" type="reset">Limpar dados</button>
+            </div>
+
+            <div class="success" id="successBox" role="status" aria-live="polite"></div>
+          </form>
+        </div>
+
+        <aside class="panel side">
+          <h2>Resumo do fluxo</h2>
+          <p>A inscricao gera um codigo unico. Esse codigo vai no QR Code/link de pagamento e permite confirmar o pagamento automaticamente.</p>
+          <div class="status-list">
+            <div class="status-item">
+              <span>Confirmacao da inscricao</span>
+              <span class="badge badge--paid">E-mail modelo</span>
+            </div>
+            <div class="status-item">
+              <span>Pagamento pendente</span>
+              <span class="badge badge--pending">Admin ve</span>
+            </div>
+            <div class="status-item">
+              <span>Pagamento confirmado</span>
+              <span class="badge badge--paid">Admin ve</span>
+            </div>
+          </div>
+          <p class="hint">Para envio real de e-mails e conciliacao automatica de Pix/cartao, conecte esta pagina a um backend ou servico como Supabase, Firebase, Make, n8n, Mercado Pago, Asaas ou PagSeguro.</p>
+        </aside>
+      </section>
+
+      <section id="comprovante" class="panel proof-section" aria-label="Envio de comprovante">
+        <div class="panel__head">
+          <h2>Comprovante opcional</h2>
+          <p>Este envio e apenas um apoio manual. A confirmacao principal deve vir pelo link/QR Code individual e pelo retorno do PagSeguro/n8n.</p>
+        </div>
+
+        <form id="proofForm" class="proof-form">
+          <fieldset>
+            <legend>Localizar inscricao</legend>
+            <div class="grid">
+              <div class="field">
+                <label for="proofRegistrationId">Codigo da inscricao *</label>
+                <input id="proofRegistrationId" name="proofRegistrationId" autocomplete="off" placeholder="CGI-..." required>
+              </div>
+              <div class="field">
+                <label for="proofCpf">CPF *</label>
+                <input id="proofCpf" name="proofCpf" inputmode="numeric" autocomplete="off" placeholder="000.000.000-00" maxlength="14" required>
+              </div>
+              <div class="field field--full">
+                <label for="latePaymentProof">Comprovante *</label>
+                <div class="upload-box">
+                  <input id="latePaymentProof" name="latePaymentProof" type="file" accept="image/*,.pdf" required>
+                  <span class="hint">Depois do envio, a administracao vera o nome do arquivo anexado na lista de inscritos.</span>
+                </div>
+              </div>
+            </div>
+          </fieldset>
+
+          <div class="actions">
+            <button class="btn btn--primary" type="submit">Enviar comprovante opcional</button>
+          </div>
+          <div class="success" id="proofSuccessBox" role="status" aria-live="polite"></div>
+        </form>
+      </section>
+
+      <section id="admin" class="panel admin" aria-label="Administracao">
+        <div class="panel__head">
+          <h2>Administracao da igreja</h2>
+          <p>Lista local de inscritos, separando quem pagou e quem ainda esta pendente.</p>
+        </div>
+
+        <form id="adminLoginForm" class="admin-login">
+          <fieldset>
+            <legend>Acesso restrito</legend>
+            <div class="grid">
+              <div class="field">
+                <label for="adminUser">Usuario ou e-mail *</label>
+                <input id="adminUser" name="adminUser" autocomplete="username" required>
+              </div>
+              <div class="field">
+                <label for="adminPassword">Senha *</label>
+                <div class="password-wrap">
+                  <input id="adminPassword" name="adminPassword" type="password" autocomplete="current-password" required>
+                  <button class="icon-btn" type="button" id="toggleAdminPassword" aria-label="Mostrar senha" title="Mostrar senha">◉</button>
+                </div>
+              </div>
+            </div>
+          </fieldset>
+          <div class="actions">
+            <button class="btn btn--primary" type="submit">Entrar</button>
+          </div>
+          <div class="success" id="adminLoginMessage" role="status" aria-live="polite"></div>
+        </form>
+
+        <div id="adminPrivate" class="admin-private is-hidden">
+          <div class="success is-visible">
+            <strong>Painel administrativo liberado.</strong>
+            <p>Use este painel para acompanhar inscritos, pagamentos, caronas, vagas oferecidas e comprovantes.</p>
+          </div>
+          <div class="admin-toolbar">
+            <div class="stats">
+              <div class="stat"><strong id="totalCount">0</strong><span>Total</span></div>
+              <div class="stat"><strong id="paidCount">0</strong><span>Pagos</span></div>
+              <div class="stat"><strong id="pendingCount">0</strong><span>Pendentes</span></div>
+              <div class="stat"><strong id="rideCount">0</strong><span>Precisam carona</span></div>
+              <div class="stat"><strong id="seatsCount">0</strong><span>Vagas ofertadas</span></div>
+            </div>
+            <div class="actions">
+              <button class="btn btn--ghost" type="button" id="exportCsv">Exportar inscritos</button>
+              <button class="btn btn--ghost" type="button" id="importPaymentsButton">Importar pagamentos</button>
+              <input id="paymentImport" type="file" accept=".csv,.txt" hidden>
+              <button class="btn btn--ghost" type="button" id="adminLogout">Sair</button>
+              <button class="btn btn--danger" type="button" id="clearAll">Apagar lista</button>
+            </div>
+          </div>
+
+          <div class="table-wrap" id="adminTable"></div>
+        </div>
+      </section>
+    </div>
+  </main>
+
+  <script>
+    const CONFIG = {
+      churchName: "Congresso da Igreja",
+      churchPaymentUrl: "https://link-da-igreja.com/pagamento-congresso",
+      n8nRegistrationWebhookUrl: "",
+      n8nProofWebhookUrl: "",
+      adminEmail: "administracao@igreja.com",
+      adminUser: "admin",
+      adminPassword: "troque-esta-senha",
+      paymentReturnSecret: "troque-este-token",
+      storageKey: "congressoIgrejaInscricoes"
+    };
+
+    const $ = (selector) => document.querySelector(selector);
+    const form = $("#registrationForm");
+    const proofForm = $("#proofForm");
+    const successBox = $("#successBox");
+    const proofSuccessBox = $("#proofSuccessBox");
+    const adminSessionKey = `${CONFIG.storageKey}:adminSession`;
+    const cepHint = $("#cepHint");
+    const seatsField = $("#seatsField");
+    const seatsSelect = $("#seats");
+    const moneyLink = CONFIG.churchPaymentUrl;
+    let memoryRecords = [];
+    let memoryAdminSession = false;
+
+    function storageAvailable(type) {
+      try {
+        const storage = window[type];
+        const key = `${CONFIG.storageKey}:test`;
+        storage.setItem(key, "1");
+        storage.removeItem(key);
+        return true;
+      } catch {
+        return false;
+      }
+    }
+
+    const hasLocalStorage = storageAvailable("localStorage");
+    const hasSessionStorage = storageAvailable("sessionStorage");
+
+    function onlyDigits(value) {
+      return String(value || "").replace(/\D/g, "");
+    }
+
+    function formatCpf(value) {
+      const digits = onlyDigits(value).slice(0, 11);
+      return digits
+        .replace(/(\d{3})(\d)/, "$1.$2")
+        .replace(/(\d{3})(\d)/, "$1.$2")
+        .replace(/(\d{3})(\d{1,2})$/, "$1-$2");
+    }
+
+    function validateCpf(value) {
+      const cpf = onlyDigits(value);
+      if (cpf.length !== 11 || /^(\d)\1+$/.test(cpf)) return false;
+
+      let sum = 0;
+      for (let i = 0; i < 9; i += 1) sum += Number(cpf[i]) * (10 - i);
+      let first = (sum * 10) % 11;
+      if (first === 10) first = 0;
+      if (first !== Number(cpf[9])) return false;
+
+      sum = 0;
+      for (let i = 0; i < 10; i += 1) sum += Number(cpf[i]) * (11 - i);
+      let second = (sum * 10) % 11;
+      if (second === 10) second = 0;
+      return second === Number(cpf[10]);
+    }
+
+    function formatCep(value) {
+      const digits = onlyDigits(value).slice(0, 8);
+      return digits.replace(/(\d{5})(\d{1,3})$/, "$1-$2");
+    }
+
+    function getRecords() {
+      if (!hasLocalStorage) return memoryRecords;
+
+      try {
+        return JSON.parse(localStorage.getItem(CONFIG.storageKey)) || [];
+      } catch {
+        return memoryRecords;
+      }
+    }
+
+    function saveRecords(records) {
+      memoryRecords = records;
+      if (hasLocalStorage) {
+        try {
+          localStorage.setItem(CONFIG.storageKey, JSON.stringify(records));
+        } catch {
+          memoryRecords = records;
+        }
+      }
+      renderAdmin();
+    }
+
+    function showMessage(container, title, text) {
+      container.classList.add("is-visible");
+      container.innerHTML = `<strong>${escapeHtml(title)}</strong><p>${escapeHtml(text)}</p>`;
+      container.scrollIntoView({ behavior: "smooth", block: "center" });
+    }
+
+    function isAdminAuthenticated() {
+      if (!hasSessionStorage) return memoryAdminSession;
+
+      try {
+        return sessionStorage.getItem(adminSessionKey) === "ok";
+      } catch {
+        return memoryAdminSession;
+      }
+    }
+
+    function setAdminAuthenticated(value) {
+      memoryAdminSession = value;
+      if (!hasSessionStorage) {
+        updateAdminAccess();
+        return;
+      }
+
+      if (value) {
+        try {
+          sessionStorage.setItem(adminSessionKey, "ok");
+        } catch {
+          memoryAdminSession = true;
+        }
+      } else {
+        try {
+          sessionStorage.removeItem(adminSessionKey);
+        } catch {
+          memoryAdminSession = false;
+        }
+      }
+      updateAdminAccess();
+    }
+
+    function updateAdminAccess() {
+      const authenticated = isAdminAuthenticated();
+      $("#adminLoginForm").classList.toggle("is-hidden", authenticated);
+      $("#adminPrivate").classList.toggle("is-hidden", !authenticated);
+      if (authenticated) renderAdmin();
+    }
+
+    async function postToWebhook(url, payload) {
+      if (!url) return { ok: false, skipped: true };
+
+      try {
+        const response = await fetch(url, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(payload)
+        });
+        const text = await response.text();
+        let data = {};
+        try {
+          data = text ? JSON.parse(text) : {};
+        } catch {
+          data = { raw: text };
+        }
+        return { ok: response.ok, status: response.status, data };
+      } catch (error) {
+        return { ok: false, error: error.message };
+      }
+    }
+
+    function pickPaymentUrl(webhookData) {
+      const data = webhookData || {};
+      return data.paymentUrl || data.payment_url || data.checkoutUrl || data.checkout_url || data.link || "";
+    }
+
+    function makeRegistrationLink(record) {
+      let url;
+      try {
+        url = new URL(moneyLink || window.location.href, window.location.href);
+      } catch {
+        url = new URL(window.location.href);
+      }
+      url.searchParams.set("inscricao", record.id);
+      url.searchParams.set("referencia", record.paymentReference);
+      url.searchParams.set("nome", record.fullName);
+      return url.toString();
+    }
+
+    function makeLocalPaymentReturnLink(record) {
+      const url = new URL(window.location.href);
+      url.search = "";
+      url.hash = "";
+      url.searchParams.set("inscricao", record.id);
+      url.searchParams.set("status", "pago");
+      url.searchParams.set("token", CONFIG.paymentReturnSecret);
+      return url.toString();
+    }
+
+    function makeQrUrl(link) {
+      return `https://api.qrserver.com/v1/create-qr-code/?size=220x220&data=${encodeURIComponent(link)}`;
+    }
+
+    function makeProofReturnLink(record) {
+      const url = new URL(window.location.href);
+      url.search = "";
+      url.hash = "";
+      url.searchParams.set("acao", "comprovante");
+      url.searchParams.set("inscricao", record.id);
+      return url.toString();
+    }
+
+    function buildAddress(record) {
+      return [record.street, record.number, record.district, record.city, record.state, record.cep]
+        .filter(Boolean)
+        .join(", ");
+    }
+
+    function buildMapsLink(record) {
+      return `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(buildAddress(record))}`;
+    }
+
+    function mailtoFor(record, type) {
+      if (type === "admin") {
+        const subject = `Nova inscricao - ${record.fullName}`;
+        const body = `Nova inscricao recebida para ${CONFIG.churchName}.\n\nNome: ${record.fullName}\nE-mail: ${record.email}\nCPF: ${record.cpf}\nIgreja: ${record.church}\nEndereco: ${buildAddress(record)}\nPrecisa de carona: ${record.needsRide}\nOferece carona: ${record.hasCar}${record.seats ? ` (${record.seats} vagas)` : ""}\nStatus de pagamento: ${record.paymentStatus}\nCodigo: ${record.id}\nReferencia de pagamento: ${record.paymentReference}\nLink: ${record.registrationLink}`;
+        return `mailto:${encodeURIComponent(CONFIG.adminEmail)}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
+      }
+
+      const isPaid = type === "paid";
+      const subject = isPaid
+        ? `Pagamento confirmado - ${CONFIG.churchName}`
+        : `Inscricao recebida - ${CONFIG.churchName}`;
+      const body = isPaid
+        ? `Ola, ${record.fullName}.\n\nRecebemos a confirmacao do seu pagamento para o ${CONFIG.churchName}.\n\nSeu codigo de inscricao: ${record.id}\n\nNos vemos no congresso.`
+        : `Ola, ${record.fullName}.\n\nSua inscricao no ${CONFIG.churchName} foi recebida.\n\nCodigo de inscricao: ${record.id}\nReferencia de pagamento: ${record.paymentReference}\nLink/QR Code: ${record.registrationLink}\n\nUse o QR Code/link da igreja. A confirmacao sera feita automaticamente quando o pagamento for localizado pela referencia.`;
+
+      return `mailto:${encodeURIComponent(record.email)}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
+    }
+
+    async function fetchAddressByCep(cep) {
+      const digits = onlyDigits(cep);
+      if (digits.length !== 8) return;
+
+      cepHint.textContent = "Buscando endereco pelo CEP...";
+      try {
+        const response = await fetch(`https://viacep.com.br/ws/${digits}/json/`);
+        const data = await response.json();
+        if (data.erro) {
+          cepHint.textContent = "CEP nao encontrado. Preencha o endereco manualmente.";
+          return;
+        }
+
+        $("#street").value = data.logradouro || "";
+        $("#district").value = data.bairro || "";
+        $("#city").value = data.localidade || "";
+        $("#state").value = data.uf || "";
+        cepHint.textContent = "Endereco preenchido pelo CEP. Confira numero e complemento.";
+        $("#number").focus();
+      } catch {
+        cepHint.textContent = "Nao foi possivel consultar o CEP agora. Preencha manualmente.";
+      }
+    }
+
+    function makePaymentReference(record) {
+      return `${record.id}-${onlyDigits(record.cpf).slice(-4)}`;
+    }
+
+    function readProofFile(file) {
+      return new Promise((resolve) => {
+        if (!file) {
+          resolve({ name: "", type: "", size: 0, data: "" });
+          return;
+        }
+
+        if (file.size > 1500000) {
+          resolve({ name: file.name, type: file.type, size: file.size, data: "" });
+          return;
+        }
+
+        const reader = new FileReader();
+        reader.onload = () => resolve({ name: file.name, type: file.type, size: file.size, data: reader.result });
+        reader.onerror = () => resolve({ name: file.name, type: file.type, size: file.size, data: "" });
+        reader.readAsDataURL(file);
+      });
+    }
+
+    async function formToRecord() {
+      const data = new FormData(form);
+      const record = Object.fromEntries(data.entries());
+      record.id = `CGI-${Date.now().toString(36).toUpperCase()}`;
+      record.createdAt = new Date().toISOString();
+      record.cpf = formatCpf(record.cpf);
+      record.cep = formatCep(record.cep);
+      record.seats = record.hasCar === "Sim" ? record.seats : "";
+      record.paymentStatus = "Pendente";
+      record.paymentReference = makePaymentReference(record);
+      record.paymentConfirmedAt = "";
+      record.paymentConfirmationSource = "";
+      record.paymentProof = { name: "", type: "", size: 0, data: "" };
+      record.registrationLink = makeRegistrationLink(record);
+      record.integrationStatus = "Local";
+      return record;
+    }
+
+    function renderSuccess(record) {
+      successBox.classList.add("is-visible");
+      successBox.innerHTML = `
+        <strong>Inscricao realizada.</strong>
+        <p>Codigo: <strong>${record.id}</strong>. Referencia de pagamento: <strong>${record.paymentReference}</strong>.</p>
+        <p>Status da integracao: <strong>${record.integrationStatus || "Local"}</strong>.</p>
+        <div class="qr-wrap">
+          <img alt="QR Code do pagamento individual" src="${makeQrUrl(record.registrationLink)}">
+          <div>
+            <p>Este QR Code e individual. Ele leva a referencia <strong>${record.paymentReference}</strong>, permitindo identificar automaticamente quem pagou.</p>
+            <p><a class="map-link" href="${record.registrationLink}" target="_blank" rel="noopener">Abrir link individual de pagamento</a></p>
+            <p class="hint">Simulacao local de retorno pago: <a class="map-link" href="${makeLocalPaymentReturnLink(record)}">marcar esta inscricao como paga</a></p>
+            <p>
+              <a class="btn btn--ghost" href="${mailtoFor(record, "registration")}">Preparar e-mail de inscricao</a>
+              <a class="btn btn--ghost" href="${mailtoFor(record, "admin")}">Avisar administracao</a>
+              ${record.paymentStatus === "Pago" ? `<a class="btn btn--ghost" href="${mailtoFor(record, "paid")}">Preparar e-mail de pagamento</a>` : ""}
+            </p>
+          </div>
+        </div>
+      `;
+      successBox.scrollIntoView({ behavior: "smooth", block: "center" });
+    }
+
+    function escapeHtml(value) {
+      return String(value || "")
+        .replace(/&/g, "&amp;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;")
+        .replace(/"/g, "&quot;")
+        .replace(/'/g, "&#039;");
+    }
+
+    function renderAdmin() {
+      if (!isAdminAuthenticated()) {
+        $("#adminTable").innerHTML = "";
+        return;
+      }
+
+      const records = getRecords();
+      const paid = records.filter((item) => item.paymentStatus === "Pago").length;
+      const pending = records.length - paid;
+      const ride = records.filter((item) => item.needsRide === "Sim").length;
+      const seats = records.reduce((total, item) => total + Number(item.seats || 0), 0);
+      const churches = new Set(records.map((item) => item.church).filter(Boolean)).size;
+      const individualLinks = records.filter((item) => item.registrationLink).length;
+
+      $("#totalCount").textContent = records.length;
+      $("#paidCount").textContent = paid;
+      $("#pendingCount").textContent = pending;
+      $("#rideCount").textContent = ride;
+      $("#seatsCount").textContent = seats;
+
+      if (!records.length) {
+        $("#adminTable").innerHTML = `<div class="empty">Nenhuma inscricao registrada neste navegador. Assim que alguem finalizar a inscricao, os dados aparecem aqui.</div>`;
+        return;
+      }
+
+      $("#adminTable").innerHTML = `
+        <div class="empty">
+          <strong>Resumo do evento:</strong>
+          ${records.length} inscrito(s), ${paid} pagamento(s) confirmado(s), ${pending} pendente(s), ${ride} pessoa(s) precisam de carona, ${seats} vaga(s) oferecida(s), ${churches} igreja(s)/unidade(s), ${individualLinks} link(s) individual(is) gerado(s).
+        </div>
+        <table>
+          <thead>
+            <tr>
+              <th>Inscrito</th>
+              <th>CPF</th>
+              <th>Igreja</th>
+              <th>Endereco</th>
+              <th>Transporte</th>
+              <th>Pagamento</th>
+              <th>Acoes</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${records.map((record) => `
+              <tr>
+                <td>
+                  <strong>${escapeHtml(record.fullName)}</strong><br>
+                  <a class="map-link" href="mailto:${escapeHtml(record.email)}">${escapeHtml(record.email)}</a><br>
+                  <small>${escapeHtml(record.id)}</small>
+                </td>
+                <td>${escapeHtml(record.cpf)}</td>
+                <td>${escapeHtml(record.church)}</td>
+                <td>
+                  ${escapeHtml(buildAddress(record))}<br>
+                  <a class="map-link" href="${buildMapsLink(record)}" target="_blank" rel="noopener">Abrir no Maps</a>
+                </td>
+                <td>
+                  Precisa: <strong>${escapeHtml(record.needsRide)}</strong><br>
+                  Oferece: <strong>${escapeHtml(record.hasCar)}</strong>${record.seats ? `, ${escapeHtml(record.seats)} vagas` : ""}
+                </td>
+                <td>
+                  <span class="badge ${record.paymentStatus === "Pago" ? "badge--paid" : "badge--pending"}">${escapeHtml(record.paymentStatus)}</span><br>
+                  <small>Ref.: ${escapeHtml(record.paymentReference)}</small><br>
+                  <a class="map-link" href="${escapeHtml(record.registrationLink)}" target="_blank" rel="noopener">Link individual</a><br>
+                  <small>${record.paymentConfirmationSource ? `Fonte: ${escapeHtml(record.paymentConfirmationSource)}` : "Aguardando conciliacao automatica"}</small>
+                  ${record.paymentProof && record.paymentProof.name ? `<br><small>Comprovante: ${escapeHtml(record.paymentProof.name)}</small>` : ""}
+                </td>
+                <td>
+                  <div class="table-actions">
+                    <button class="mini" type="button" data-action="toggle" data-id="${record.id}">${record.paymentStatus === "Pago" ? "Corrigir para pendente" : "Confirmar manualmente"}</button>
+                    <a class="mini" href="${mailtoFor(record, "registration")}">E-mail inscricao</a>
+                    <a class="mini" href="${mailtoFor(record, "paid")}">E-mail pagamento</a>
+                    <button class="mini" type="button" data-action="remove" data-id="${record.id}">Remover</button>
+                  </div>
+                </td>
+              </tr>
+            `).join("")}
+          </tbody>
+        </table>
+      `;
+    }
+
+    function exportCsv() {
+      const records = getRecords();
+      if (!records.length) return;
+
+      const headers = [
+        "id", "data", "nome", "email", "cpf", "igreja", "cep", "endereco",
+        "precisa_carona", "oferece_carona", "vagas", "status_pagamento", "referencia_pagamento", "fonte_confirmacao", "comprovante", "integracao"
+      ];
+      const rows = records.map((record) => [
+        record.id,
+        record.createdAt,
+        record.fullName,
+        record.email,
+        record.cpf,
+        record.church,
+        record.cep,
+        buildAddress(record),
+        record.needsRide,
+        record.hasCar,
+        record.seats,
+        record.paymentStatus,
+        record.paymentReference,
+        record.paymentConfirmationSource,
+        record.paymentProof && record.paymentProof.name,
+        record.integrationStatus
+      ]);
+
+      const csv = [headers, ...rows]
+        .map((row) => row.map((cell) => `"${String(cell || "").replace(/"/g, '""')}"`).join(","))
+        .join("\n");
+      const blob = new Blob([csv], { type: "text/csv;charset=utf-8" });
+      const link = document.createElement("a");
+      link.href = URL.createObjectURL(blob);
+      link.download = "inscricoes-congresso-igreja.csv";
+      link.click();
+      URL.revokeObjectURL(link.href);
+    }
+
+    function normalizePaymentText(text) {
+      return String(text || "").toLowerCase().replace(/[^\w@.-]+/g, " ");
+    }
+
+    function autoConfirmPayments(paymentText, sourceLabel) {
+      const normalized = normalizePaymentText(paymentText);
+      const records = getRecords();
+      let confirmed = 0;
+
+      records.forEach((record) => {
+        if (record.paymentStatus === "Pago") return;
+        const identifiers = [
+          record.id,
+          record.paymentReference,
+          onlyDigits(record.cpf),
+          record.email
+        ].filter(Boolean).map(normalizePaymentText);
+
+        if (identifiers.some((identifier) => normalized.includes(identifier))) {
+          record.paymentStatus = "Pago";
+          record.paymentConfirmedAt = new Date().toISOString();
+          record.paymentConfirmationSource = sourceLabel;
+          confirmed += 1;
+        }
+      });
+
+      saveRecords(records);
+      alert(`${confirmed} pagamento(s) confirmado(s) automaticamente.`);
+    }
+
+    function applyPaymentReturnFromUrl() {
+      const params = new URLSearchParams(window.location.search);
+      const id = params.get("inscricao");
+      const status = params.get("status");
+      const token = params.get("token");
+      if (!id || status !== "pago" || token !== CONFIG.paymentReturnSecret) return;
+
+      const records = getRecords();
+      const record = records.find((item) => item.id === id);
+      if (!record) return;
+
+      record.paymentStatus = "Pago";
+      record.paymentConfirmedAt = new Date().toISOString();
+      record.paymentConfirmationSource = "Retorno automatico do link de pagamento";
+      saveRecords(records);
+    }
+
+    function showTab(tabName) {
+      document.querySelectorAll("[data-tab]").forEach((tab) => {
+        tab.setAttribute("aria-selected", String(tab.dataset.tab === tabName));
+      });
+      $("#inscricao").style.display = tabName === "inscricao" ? "" : "none";
+      $("#comprovante").classList.toggle("is-visible", tabName === "comprovante");
+      $("#admin").classList.toggle("is-visible", tabName === "admin");
+      if (tabName === "admin") updateAdminAccess();
+    }
+
+    function applyProofReturnFromUrl() {
+      const params = new URLSearchParams(window.location.search);
+      if (params.get("acao") !== "comprovante") return;
+      showTab("comprovante");
+      const id = params.get("inscricao");
+      if (id) $("#proofRegistrationId").value = id;
+    }
+
+    function goToAdminPanel() {
+      const url = new URL(window.location.href);
+      if (url.searchParams.get("painel") !== "admin") {
+        url.searchParams.set("painel", "admin");
+        window.location.href = url.toString();
+        return;
+      }
+      showTab("admin");
+      $("#adminPrivate").scrollIntoView({ behavior: "smooth", block: "start" });
+    }
+
+    function applyAdminRouteFromUrl() {
+      const params = new URLSearchParams(window.location.search);
+      if (params.get("painel") === "admin") {
+        showTab("admin");
+        return true;
+      }
+      return false;
+    }
+
+    $("#cpf").addEventListener("input", (event) => {
+      event.target.value = formatCpf(event.target.value);
+      event.target.setCustomValidity("");
+    });
+
+    $("#proofCpf").addEventListener("input", (event) => {
+      event.target.value = formatCpf(event.target.value);
+    });
+
+    $("#cpf").addEventListener("blur", (event) => {
+      if (event.target.value && !validateCpf(event.target.value)) {
+        event.target.setCustomValidity("Informe um CPF valido.");
+        event.target.reportValidity();
+      } else {
+        event.target.setCustomValidity("");
+      }
+    });
+
+    $("#cep").addEventListener("input", (event) => {
+      event.target.value = formatCep(event.target.value);
+      if (onlyDigits(event.target.value).length === 8) fetchAddressByCep(event.target.value);
+    });
+
+    document.querySelectorAll("input[name='hasCar']").forEach((input) => {
+      input.addEventListener("change", () => {
+        const hasCar = form.elements.hasCar.value === "Sim";
+        seatsField.hidden = !hasCar;
+        seatsSelect.required = hasCar;
+        if (!hasCar) seatsSelect.value = "";
+      });
+    });
+
+    document.querySelectorAll("[data-tab]").forEach((button) => {
+      button.addEventListener("click", () => {
+        showTab(button.dataset.tab);
+      });
+    });
+
+    form.addEventListener("invalid", () => {
+      showMessage(successBox, "Revise os campos obrigatorios.", "Preencha os campos destacados antes de finalizar a inscricao.");
+    }, true);
+
+    form.addEventListener("submit", async (event) => {
+      event.preventDefault();
+      const submitButton = form.querySelector("button[type='submit']");
+
+      try {
+        if (!form.checkValidity()) {
+          form.reportValidity();
+          showMessage(successBox, "Revise os campos obrigatorios.", "Ainda ha informacoes obrigatorias sem preencher.");
+          return;
+        }
+
+        if (!validateCpf($("#cpf").value)) {
+          $("#cpf").setCustomValidity("Informe um CPF valido.");
+          $("#cpf").reportValidity();
+          showMessage(successBox, "CPF invalido.", "Confira o CPF digitado antes de finalizar a inscricao.");
+          return;
+        }
+        $("#cpf").setCustomValidity("");
+
+        submitButton.disabled = true;
+        submitButton.textContent = "Finalizando...";
+
+        const record = await formToRecord();
+        const webhookResult = await postToWebhook(CONFIG.n8nRegistrationWebhookUrl, {
+          event: "registration.created",
+          registration: record
+        });
+        const paymentUrl = pickPaymentUrl(webhookResult.data);
+        if (paymentUrl) {
+          record.registrationLink = paymentUrl;
+          record.integrationStatus = "Enviado ao n8n; link PagSeguro recebido";
+        } else if (webhookResult.ok) {
+          record.integrationStatus = "Enviado ao n8n";
+        } else if (webhookResult.skipped) {
+          record.integrationStatus = "Webhook n8n nao configurado";
+        } else {
+          record.integrationStatus = `Falha no envio ao n8n${webhookResult.status ? ` (${webhookResult.status})` : ""}`;
+        }
+        const records = getRecords();
+        records.unshift(record);
+        saveRecords(records);
+        renderSuccess(record);
+        form.reset();
+        seatsField.hidden = true;
+        seatsSelect.required = false;
+      } catch (error) {
+        showMessage(successBox, "Nao foi possivel finalizar.", error.message || "Ocorreu um erro inesperado no envio da inscricao.");
+      } finally {
+        submitButton.disabled = false;
+        submitButton.textContent = "Finalizar inscricao";
+      }
+    });
+
+    proofForm.addEventListener("submit", async (event) => {
+      event.preventDefault();
+      const id = $("#proofRegistrationId").value.trim().toUpperCase();
+      const cpf = formatCpf($("#proofCpf").value);
+      const records = getRecords();
+      const index = records.findIndex((record) => record.id.toUpperCase() === id && record.cpf === cpf);
+
+      proofSuccessBox.classList.add("is-visible");
+      if (index < 0) {
+        proofSuccessBox.innerHTML = `<strong>Inscricao nao encontrada.</strong><p>Confira o codigo da inscricao e o CPF informados.</p>`;
+        return;
+      }
+
+      records[index].paymentProof = await readProofFile($("#latePaymentProof").files[0]);
+      records[index].proofSentAt = new Date().toISOString();
+      const webhookResult = await postToWebhook(CONFIG.n8nProofWebhookUrl, {
+        event: "registration.proof_uploaded",
+        registrationId: records[index].id,
+        cpf: records[index].cpf,
+        email: records[index].email,
+        paymentReference: records[index].paymentReference,
+        paymentProof: records[index].paymentProof
+      });
+      if (webhookResult.ok) {
+        records[index].integrationStatus = "Comprovante enviado ao n8n";
+      } else if (!webhookResult.skipped) {
+        records[index].integrationStatus = `Falha ao enviar comprovante ao n8n${webhookResult.status ? ` (${webhookResult.status})` : ""}`;
+      }
+      saveRecords(records);
+      proofSuccessBox.innerHTML = `<strong>Comprovante recebido.</strong><p>A inscricao ${records[index].id} foi atualizada. A confirmacao de pagamento sera feita pela administracao/conciliacao automatica.</p>`;
+      proofForm.reset();
+    });
+
+    $("#adminTable").addEventListener("click", (event) => {
+      const actionButton = event.target.closest("[data-action]");
+      if (!actionButton) return;
+
+      const records = getRecords();
+      const index = records.findIndex((record) => record.id === actionButton.dataset.id);
+      if (index < 0) return;
+
+      if (actionButton.dataset.action === "toggle") {
+        records[index].paymentStatus = records[index].paymentStatus === "Pago" ? "Pendente" : "Pago";
+        records[index].paymentConfirmedAt = records[index].paymentStatus === "Pago" ? new Date().toISOString() : "";
+        records[index].paymentConfirmationSource = records[index].paymentStatus === "Pago" ? "Confirmacao manual da administracao" : "";
+      }
+
+      if (actionButton.dataset.action === "remove") {
+        records.splice(index, 1);
+      }
+
+      saveRecords(records);
+    });
+
+    $("#exportCsv").addEventListener("click", exportCsv);
+
+    $("#importPaymentsButton").addEventListener("click", () => $("#paymentImport").click());
+
+    $("#paymentImport").addEventListener("change", async (event) => {
+      const file = event.target.files[0];
+      if (!file) return;
+      const text = await file.text();
+      autoConfirmPayments(text, `Importacao: ${file.name}`);
+      event.target.value = "";
+    });
+
+    $("#clearAll").addEventListener("click", () => {
+      if (confirm("Apagar todas as inscricoes salvas neste navegador?")) {
+        saveRecords([]);
+      }
+    });
+
+    $("#adminLoginForm").addEventListener("submit", (event) => {
+      event.preventDefault();
+      const user = $("#adminUser").value.trim().toLowerCase();
+      const password = $("#adminPassword").value.trim();
+      const expectedUsers = [
+        CONFIG.adminUser,
+        CONFIG.adminEmail
+      ].map((value) => String(value || "").trim().toLowerCase()).filter(Boolean);
+      const expectedPassword = String(CONFIG.adminPassword || "").trim();
+      const message = $("#adminLoginMessage");
+
+      if (expectedUsers.includes(user) && password === expectedPassword) {
+        message.classList.remove("is-visible");
+        setAdminAuthenticated(true);
+        event.target.reset();
+        goToAdminPanel();
+        return;
+      }
+
+      message.classList.add("is-visible");
+      message.innerHTML = `<strong>Acesso negado.</strong><p>Usuario ou senha incorretos.</p>`;
+    });
+
+    $("#toggleAdminPassword").addEventListener("click", () => {
+      const input = $("#adminPassword");
+      const button = $("#toggleAdminPassword");
+      const shouldShow = input.type === "password";
+      input.type = shouldShow ? "text" : "password";
+      button.setAttribute("aria-label", shouldShow ? "Ocultar senha" : "Mostrar senha");
+      button.setAttribute("title", shouldShow ? "Ocultar senha" : "Mostrar senha");
+      button.textContent = shouldShow ? "×" : "◉";
+      input.focus();
+    });
+
+    $("#adminLogout").addEventListener("click", () => {
+      setAdminAuthenticated(false);
+    });
+
+    applyPaymentReturnFromUrl();
+    applyProofReturnFromUrl();
+    if (!applyAdminRouteFromUrl()) {
+      updateAdminAccess();
+    }
+  </script>
+</body>
+</html>
