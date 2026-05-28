@@ -1,29 +1,29 @@
-# Integracao com n8n e PagSeguro/PagBank
+# Integração com n8n e PagSeguro/PagBank
 
 ## Arquitetura recomendada
 
 Use os dois:
 
-1. A pagina envia a inscricao para um webhook do n8n.
-2. O n8n salva a inscricao em uma base central.
-3. O n8n cria o checkout no PagSeguro/PagBank usando a referencia da inscricao.
-4. O n8n responde para a pagina com a URL de pagamento.
-5. A pagina gera o QR Code usando essa URL.
+1. A página envia a inscrição para um webhook do n8n.
+2. O n8n salva a inscrição em uma base central.
+3. O n8n cria o checkout no PagSeguro/PagBank usando a referência da inscrição.
+4. O n8n responde para a página com a URL de pagamento.
+5. A página gera o QR Code usando essa URL.
 6. O PagSeguro/PagBank envia webhook de pagamento para o n8n.
-7. O n8n localiza a inscricao pela referencia e marca como `Pago`.
-8. O n8n envia e-mail de inscricao e e-mail de confirmacao de pagamento.
+7. O n8n localiza a inscrição pela referência e marca como `Pago`.
+8. O n8n envia e-mail de inscrição e e-mail de confirmação de pagamento.
 
 ## Webhooks no n8n
 
 Crie dois workflows ou dois Webhook nodes:
 
-### 1. Nova inscricao
+### 1. Nova inscrição
 
 Metodo: `POST`
 
-URL de producao do n8n: cole no `CONFIG.n8nRegistrationWebhookUrl`.
+URL de produção do n8n: cole no `CONFIG.n8nRegistrationWebhookUrl`.
 
-Payload recebido da pagina:
+Payload recebido da página:
 
 ```json
 {
@@ -48,13 +48,13 @@ Resposta esperada pelo site:
 }
 ```
 
-O site tambem aceita os nomes `payment_url`, `checkoutUrl`, `checkout_url` ou `link`.
+O site também aceita os nomes `payment_url`, `checkoutUrl`, `checkout_url` ou `link`.
 
 ### 2. Comprovante enviado depois
 
 Metodo: `POST`
 
-URL de producao do n8n: cole no `CONFIG.n8nProofWebhookUrl`.
+URL de produção do n8n: cole no `CONFIG.n8nProofWebhookUrl`.
 
 Payload recebido:
 
@@ -80,9 +80,9 @@ Workflow sugerido:
 
 1. `Webhook` recebe `registration.created`.
 2. `Set` normaliza os campos.
-3. `Data Store`, `Google Sheets`, `Supabase` ou outro banco salva a inscricao como `Pendente`.
+3. `Data Store`, `Google Sheets`, `Supabase` ou outro banco salva a inscrição como `Pendente`.
 4. `HTTP Request` chama a API de Checkout/Order do PagSeguro/PagBank.
-5. Inclua a referencia da inscricao como `reference_id`/referencia do pedido.
+5. Inclua a referência da inscrição como `reference_id`/referência do pedido.
 6. Inclua a URL de webhook do n8n em `notification_urls` quando usar Checkout PagBank.
 7. `Respond to Webhook` retorna o link de pagamento para o site.
 
@@ -98,17 +98,17 @@ Exemplo de resposta final do n8n:
 
 Workflow sugerido:
 
-1. `Webhook` recebe notificacao do PagSeguro/PagBank.
-2. `IF` verifica se o status recebido e `PAID`.
-3. `Set` extrai `reference_id`, `charges[0].reference_id` ou a referencia equivalente enviada pelo PagSeguro/PagBank.
-4. Atualize a inscricao no banco para `Pago`.
-5. Envie e-mail de confirmacao para o inscrito.
-6. Envie e-mail/resumo para a administracao.
+1. `Webhook` recebe notificação do PagSeguro/PagBank.
+2. `IF` verifica se o status recebido é `PAID`.
+3. `Set` extrai `reference_id`, `charges[0].reference_id` ou a referência equivalente enviada pelo PagSeguro/PagBank.
+4. Atualize a inscrição no banco para `Pago`.
+5. Envie e-mail de confirmação para o inscrito.
+6. Envie e-mail/resumo para a administração.
 
 ## Pontos importantes
 
-- Nao coloque token secreto do PagSeguro/PagBank no HTML. Ele deve ficar apenas no n8n.
-- Em producao, use a URL de producao do Webhook node, nao a URL de teste.
-- O site estatico pode chamar o n8n, mas quem deve falar com PagSeguro/PagBank e o n8n.
-- A confirmacao verdadeira de pagamento deve vir do webhook do PagSeguro/PagBank, nao do redirecionamento do usuario.
+- Não coloque token secreto do PagSeguro/PagBank no HTML. Ele deve ficar apenas no n8n.
+- Em produção, use a URL de produção do Webhook node, não a URL de teste.
+- O site estático pode chamar o n8n, mas quem deve falar com PagSeguro/PagBank é o n8n.
+- A confirmação verdadeira de pagamento deve vir do webhook do PagSeguro/PagBank, não do redirecionamento do usuário.
 - Guarde `paymentReference` em todos os lugares: site, banco, PagSeguro/PagBank e e-mails.
