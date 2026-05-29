@@ -161,14 +161,18 @@
       transition: transform .16s ease, box-shadow .16s ease, border-color .16s ease, background .16s ease;
     }
 
-    button.event-card:hover {
+    .event-card[data-event] {
+      cursor: pointer;
+    }
+
+    .event-card[data-event]:hover {
       transform: translateY(2px);
       border-color: var(--primary);
       background: #fffaf2;
       box-shadow: inset 0 3px 10px rgba(42, 33, 27, .16), 0 6px 16px rgba(31, 36, 33, .08);
     }
 
-    button.event-card:active {
+    .event-card[data-event]:active {
       transform: translateY(4px);
       box-shadow: inset 0 5px 14px rgba(42, 33, 27, .22), 0 2px 8px rgba(31, 36, 33, .05);
     }
@@ -190,6 +194,31 @@
       flex-wrap: wrap;
       gap: 8px;
       align-items: center;
+    }
+
+    .event-details {
+      display: grid;
+      gap: 4px;
+      color: var(--muted);
+      font-size: 14px;
+      line-height: 1.35;
+    }
+
+    .event-actions {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      margin-top: 4px;
+    }
+
+    .event-info {
+      display: grid;
+      gap: 8px;
+      margin-top: 10px;
+      padding: 12px;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: #fffaf2;
     }
 
     .validation-screen {
@@ -1025,12 +1054,19 @@
       storageKey: "congressoIgrejaInscricoes"
     };
 
+    const DEFAULT_EVENT_PLACE = {
+      address: "Igreja Reformada Comunidade da Cruz",
+      mapsUrl: "https://www.google.com/maps/search/?api=1&query=Igreja%20Reformada%20Comunidade%20da%20Cruz",
+      startsAt: "A confirmar",
+      endsAt: "A confirmar"
+    };
+
     const EVENTS = [
-      { key: "clube-biblia", name: "Clube da Bíblia", paid: false, capacity: 450, description: "Inscrição gratuita para o Clube da Bíblia." },
-      { key: "congresso-mulheres", name: "Congresso de mulheres", paid: true, capacity: 450, description: "Evento com inscrição paga." },
-      { key: "musical", name: "Musical", paid: false, capacity: 450, description: "Inscrição gratuita para participantes e organização do musical." },
-      { key: "missio-dei", name: "Missio Dei", paid: true, capacity: 450, description: "Evento com inscrição paga." },
-      { key: "encontro-casais", name: "Encontro de casais", paid: false, capacity: 450, description: "Inscrição gratuita para encontro de casais." }
+      { key: "clube-biblia", name: "Clube da Bíblia", paid: false, capacity: 450, description: "Inscrição gratuita para o Clube da Bíblia.", ...DEFAULT_EVENT_PLACE },
+      { key: "congresso-mulheres", name: "Congresso de mulheres", paid: true, capacity: 450, description: "Evento com inscrição paga.", ...DEFAULT_EVENT_PLACE },
+      { key: "musical", name: "Musical", paid: false, capacity: 450, description: "Inscrição gratuita para participantes e organização do musical.", ...DEFAULT_EVENT_PLACE },
+      { key: "missio-dei", name: "Missio Dei", paid: true, capacity: 450, description: "Evento com inscrição paga.", ...DEFAULT_EVENT_PLACE },
+      { key: "encontro-casais", name: "Encontro de casais", paid: false, capacity: 450, description: "Inscrição gratuita para encontro de casais.", ...DEFAULT_EVENT_PLACE }
     ];
 
     const $ = (selector) => document.querySelector(selector);
@@ -1342,6 +1378,17 @@
       return eventApproved(record) ? "approved" : "pending";
     }
 
+    function eventTimeText(event) {
+      return `Início: ${event.startsAt || "A confirmar"} | Término: ${event.endsAt || "A confirmar"}`;
+    }
+
+    function eventDetailsHtml(event) {
+      return `
+        <span>${escapeHtml(eventTimeText(event))}</span>
+        <span>Endereço: ${escapeHtml(event.address || "A confirmar")}</span>
+      `;
+    }
+
     function renderEventCards() {
       const grid = $("#eventGrid");
       if (!grid) return;
@@ -1350,15 +1397,20 @@
         const available = Math.max(event.capacity - used, 0);
         const isFull = available <= 0;
         return `
-          <button class="event-card ${isFull ? "is-full" : ""}" type="button" data-event="${event.key}" ${isFull ? "disabled" : ""}>
+          <div class="event-card ${isFull ? "is-full" : ""}" data-event="${event.key}" role="button" tabindex="${isFull ? "-1" : "0"}" aria-disabled="${isFull ? "true" : "false"}">
             <strong>${escapeHtml(event.name)}</strong>
             <span>${escapeHtml(event.description)}</span>
+            <span class="event-details">${eventDetailsHtml(event)}</span>
             <span class="event-meta">
               <span class="badge ${event.paid ? "badge--pending" : "badge--paid"}">${event.paid ? "Pago" : "Gratuito"}</span>
               <span class="badge badge--review">${used}/${event.capacity} vagas</span>
             </span>
             <span>${available} vaga(s) disponível(is)</span>
-          </button>
+            <span class="event-actions">
+              <a class="map-link" href="${escapeHtml(event.mapsUrl)}" target="_blank" rel="noopener" data-map-link>Ver no Maps</a>
+              <span class="map-link">Inscrever-se</span>
+            </span>
+          </div>
         `;
       }).join("") + `
         <div class="event-card">
@@ -1374,7 +1426,14 @@
       if (!event) return;
       selectedEventKey = event.key;
       $("#eventKey").value = event.key;
-      $("#selectedEventHint").innerHTML = `Você está se inscrevendo em: <strong>${escapeHtml(event.name)}</strong>. ${event.paid ? "Este evento tem inscrição paga." : "Este evento é gratuito."} Vagas: ${eventCount(event.key)}/${event.capacity}.`;
+      $("#selectedEventHint").innerHTML = `
+        Você está se inscrevendo em: <strong>${escapeHtml(event.name)}</strong>. ${event.paid ? "Este evento tem inscrição paga." : "Este evento é gratuito."} Vagas: ${eventCount(event.key)}/${event.capacity}.
+        <span class="event-info">
+          <span>${escapeHtml(event.description)}</span>
+          <span>${escapeHtml(eventTimeText(event))}</span>
+          <span>Endereço: <a class="map-link" href="${escapeHtml(event.mapsUrl)}" target="_blank" rel="noopener">${escapeHtml(event.address || "A confirmar")}</a></span>
+        </span>
+      `;
       $("#paymentSection").hidden = !event.paid;
       document.querySelectorAll("[name='paymentMethod']").forEach((input) => {
         input.required = event.paid;
@@ -1514,7 +1573,7 @@
     function mailtoFor(record, type) {
       if (type === "admin") {
         const subject = `Nova inscrição - ${record.fullName}`;
-        const body = `Nova inscrição recebida para ${CONFIG.churchName}.\n\nEvento: ${record.eventName || "Evento"}\nNome: ${record.fullName}\nE-mail: ${record.email}\nWhatsApp: ${record.phone || "Não informado"}\nCPF: ${record.cpf}\nIgreja: ${record.church}\nEndereço: ${buildAddress(record)}\nPrecisa de carona: ${record.needsRide}\nOferece carona: ${record.hasCar}${record.seats ? ` (${record.seats} vagas)` : ""}\nForma de pagamento: ${record.paymentMethod || "Não informada"}\nStatus de pagamento: ${record.paymentStatus}\nCódigo: ${record.id}\nReferência de pagamento: ${record.paymentReference}\nLink: ${record.registrationLink}\nValidação: ${record.validationLink || makeValidationLink(record)}`;
+        const body = `Nova inscrição recebida para ${CONFIG.churchName}.\n\nEvento: ${record.eventName || "Evento"}\nDescrição: ${record.eventDescription || "Não informada"}\nHorário: ${record.eventTime || "A confirmar"}\nLocal: ${record.eventAddress || "A confirmar"}\nMaps: ${record.eventMapsUrl || ""}\n\nNome: ${record.fullName}\nE-mail: ${record.email}\nWhatsApp: ${record.phone || "Não informado"}\nCPF: ${record.cpf}\nIgreja: ${record.church}\nEndereço: ${buildAddress(record)}\nPrecisa de carona: ${record.needsRide}\nOferece carona: ${record.hasCar}${record.seats ? ` (${record.seats} vagas)` : ""}\nForma de pagamento: ${record.paymentMethod || "Não informada"}\nStatus de pagamento: ${record.paymentStatus}\nCódigo: ${record.id}\nReferência de pagamento: ${record.paymentReference}\nLink: ${record.registrationLink}\nValidação: ${record.validationLink || makeValidationLink(record)}`;
         return `mailto:${encodeURIComponent(CONFIG.adminEmail)}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
       }
 
@@ -1523,8 +1582,8 @@
         ? `Pagamento confirmado - ${CONFIG.churchName}`
         : `Inscrição recebida - ${CONFIG.churchName}`;
       const body = isPaid
-        ? `Olá, ${record.fullName}.\n\nRecebemos a confirmação do seu pagamento para ${record.eventName || CONFIG.churchName}.\n\nSeu código de inscrição: ${record.id}\n\nNos vemos no evento.`
-        : `Olá, ${record.fullName}.\n\nSua inscrição em ${record.eventName || CONFIG.churchName} foi recebida.\n\nCódigo de inscrição: ${record.id}\nForma de pagamento: ${record.paymentMethod || "Não informada"}\nReferência de pagamento: ${record.paymentReference}\nQR Code/validação: ${record.validationLink || makeValidationLink(record)}\n\nGuarde o QR Code para apresentar à organização.`;
+        ? `Olá, ${record.fullName}.\n\nRecebemos a confirmação do seu pagamento para ${record.eventName || CONFIG.churchName}.\n\nHorário: ${record.eventTime || "A confirmar"}\nLocal: ${record.eventAddress || "A confirmar"}\nMaps: ${record.eventMapsUrl || ""}\n\nSeu código de inscrição: ${record.id}\n\nNos vemos no evento.`
+        : `Olá, ${record.fullName}.\n\nSua inscrição em ${record.eventName || CONFIG.churchName} foi recebida.\n\n${record.eventDescription || ""}\nHorário: ${record.eventTime || "A confirmar"}\nLocal: ${record.eventAddress || "A confirmar"}\nMaps: ${record.eventMapsUrl || ""}\n\nCódigo de inscrição: ${record.id}\nForma de pagamento: ${record.paymentMethod || "Não informada"}\nReferência de pagamento: ${record.paymentReference}\nQR Code/validação: ${record.validationLink || makeValidationLink(record)}\n\nGuarde o QR Code para apresentar à organização.`;
 
       return `mailto:${encodeURIComponent(record.email)}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
     }
@@ -1585,6 +1644,12 @@
       const event = getEvent(record.eventKey);
       record.eventName = event ? event.name : "Evento";
       record.eventPaid = event ? event.paid : true;
+      record.eventDescription = event ? event.description : "";
+      record.eventAddress = event ? event.address : "";
+      record.eventMapsUrl = event ? event.mapsUrl : "";
+      record.eventStartsAt = event ? event.startsAt : "";
+      record.eventEndsAt = event ? event.endsAt : "";
+      record.eventTime = event ? eventTimeText(event) : "A confirmar";
       record.cpf = formatCpf(record.cpf);
       record.phone = formatPhone(record.phone);
       record.cep = formatCep(record.cep);
@@ -1611,6 +1676,9 @@
       successBox.innerHTML = `
         <strong>Inscrição realizada.</strong>
         <p>Evento: <strong>${escapeHtml(record.eventName || "Evento")}</strong>.</p>
+        <p>${escapeHtml(record.eventDescription || "")}</p>
+        <p>Horário: <strong>${escapeHtml(record.eventTime || "A confirmar")}</strong>.</p>
+        <p>Endereço: <a class="map-link" href="${escapeHtml(record.eventMapsUrl || "#")}" target="_blank" rel="noopener">${escapeHtml(record.eventAddress || "A confirmar")}</a>.</p>
         <p>Código: <strong>${record.id}</strong>. Referência de pagamento: <strong>${record.paymentReference}</strong>.</p>
         <p>Forma de pagamento escolhida: <strong>${record.paymentMethod || "Não informada"}</strong>.</p>
         <p>Status da integração: <strong>${record.integrationStatus || "Local"}</strong>.</p>
@@ -1776,6 +1844,9 @@
             <div class="event-admin__head">
               <h3>${escapeHtml(event.name)}</h3>
               <span class="tag">${event.paid ? "Evento pago" : "Evento gratuito"}</span>
+              <span>${escapeHtml(event.description)}</span>
+              <span>${escapeHtml(eventTimeText(event))}</span>
+              <span>Endereço: <a class="map-link" href="${escapeHtml(event.mapsUrl)}" target="_blank" rel="noopener">${escapeHtml(event.address || "A confirmar")}</a></span>
             </div>
             <div class="event-admin__metrics">
               <div class="event-admin__metric"><strong>${eventRows.length}</strong><span>Inscrições</span></div>
@@ -1993,8 +2064,17 @@
     });
 
     $("#eventGrid").addEventListener("click", (event) => {
+      if (event.target.closest("[data-map-link]")) return;
       const card = event.target.closest("[data-event]");
-      if (!card || card.disabled) return;
+      if (!card || card.getAttribute("aria-disabled") === "true") return;
+      window.location.href = makeEventRegistrationUrl(card.dataset.event);
+    });
+
+    $("#eventGrid").addEventListener("keydown", (event) => {
+      if (event.key !== "Enter" && event.key !== " ") return;
+      const card = event.target.closest("[data-event]");
+      if (!card || card.getAttribute("aria-disabled") === "true") return;
+      event.preventDefault();
       window.location.href = makeEventRegistrationUrl(card.dataset.event);
     });
 
