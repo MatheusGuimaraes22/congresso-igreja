@@ -2081,8 +2081,7 @@
         return `
           <div class="admin-event-row">
             <div>
-              <strong>${escapeHtml(event.name)}</strong><br>
-              <small>${escapeHtml(event.paid ? "Pago" : "Não pago")} | ${escapeHtml(eventTimeText(event))} | ${total}/${event.capacity} inscrição(ões)</small>
+              <strong>${escapeHtml(event.name)}</strong>
             </div>
             <button class="mini" type="button" data-action="delete-event" data-event="${escapeHtml(event.key)}" ${total ? "disabled" : ""}>${total ? "Há inscrições" : "Excluir"}</button>
           </div>
