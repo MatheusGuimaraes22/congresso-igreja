@@ -553,6 +553,61 @@
       font-size: 24px;
     }
 
+    .event-admin {
+      display: grid;
+      gap: 14px;
+      margin-top: 18px;
+    }
+
+    .event-admin__section {
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: #fff;
+      overflow: hidden;
+    }
+
+    .event-admin__head {
+      display: grid;
+      gap: 12px;
+      padding: 16px;
+      background: #f8f1e8;
+      border-bottom: 1px solid var(--line);
+    }
+
+    .event-admin__head h3 {
+      margin: 0;
+      font-size: 22px;
+    }
+
+    .event-admin__metrics {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(132px, 1fr));
+      gap: 8px;
+    }
+
+    .event-admin__metric {
+      padding: 10px;
+      border-radius: 8px;
+      background: #fff;
+      border: 1px solid var(--line);
+      font-weight: 800;
+    }
+
+    .event-admin__metric span {
+      display: block;
+      margin-top: 2px;
+      color: var(--muted);
+      font-weight: 600;
+      font-size: 12px;
+    }
+
+    .event-admin__vacancies {
+      display: grid;
+      gap: 4px;
+      color: var(--muted);
+      font-weight: 700;
+    }
+
     .table-wrap {
       overflow-x: auto;
     }
@@ -694,6 +749,10 @@
                   <input id="email" name="email" type="email" autocomplete="email" required>
                 </div>
                 <div class="field">
+                  <label for="phone">Celular/WhatsApp *</label>
+                  <input id="phone" name="phone" inputmode="tel" autocomplete="tel" placeholder="(00) 00000-0000" maxlength="15" required>
+                </div>
+                <div class="field">
                   <label for="cpf">CPF *</label>
                   <input id="cpf" name="cpf" inputmode="numeric" autocomplete="off" placeholder="000.000.000-00" maxlength="14" required>
                 </div>
@@ -789,7 +848,7 @@
                   <label>Link individual, QR Code ou referência</label>
                   <div class="upload-box">
                     <strong>O link e o QR Code serão gerados automaticamente após finalizar a inscrição.</strong>
-                    <span class="hint">Pix, crédito e débito podem ser conciliados automaticamente por provedor/n8n. Pagamento em dinheiro deve ser confirmado pela administração no recebimento.</span>
+                    <span class="hint">Pix, crédito e débito podem ser conciliados pela administração ou por provedor de pagamento. Pagamento em dinheiro deve ser confirmado pela administração no recebimento.</span>
                   </div>
                 </div>
               </div>
@@ -806,7 +865,7 @@
 
         <aside class="panel side">
           <h2>Resumo do fluxo</h2>
-          <p>A inscrição gera um código único. Esse código vai no QR Code/link de pagamento e permite confirmar o pagamento automaticamente.</p>
+          <p>A inscrição gera um QR Code de confirmação para controle da organização.</p>
           <div class="status-list">
             <div class="status-item">
               <span>Confirmação da inscrição</span>
@@ -821,14 +880,14 @@
               <span class="badge badge--paid">Admin vê</span>
             </div>
           </div>
-          <p class="hint">Para envio real de e-mails e conciliação automática de Pix/cartão, conecte esta página a um backend ou serviço como Supabase, Firebase, Make, n8n, Mercado Pago, Asaas ou PagSeguro.</p>
+          <p class="hint">As inscrições ficam salvas no Supabase. Eventos pagos continuam pendentes até conferência de pagamento pela administração ou provedor escolhido.</p>
         </aside>
       </section>
 
       <section id="comprovante" class="panel proof-section" aria-label="Envio de comprovante">
         <div class="panel__head">
           <h2>Comprovante opcional</h2>
-          <p>Este envio é apenas um apoio manual. A confirmação principal deve vir pelo link/QR Code individual e pelo retorno do PagSeguro/n8n.</p>
+          <p>Este envio é apoio para conferência da administração. O comprovante não marca pagamento como aprovado sem verificação.</p>
         </div>
 
         <form id="proofForm" class="proof-form">
@@ -930,13 +989,6 @@
             <div class="success" id="adminCredentialsMessage" role="status" aria-live="polite"></div>
           </form>
           <div class="admin-toolbar">
-            <div class="stats">
-              <div class="stat"><strong id="totalCount">0</strong><span>Total</span></div>
-              <div class="stat"><strong id="paidCount">0</strong><span>Pagos</span></div>
-              <div class="stat"><strong id="pendingCount">0</strong><span>Pendentes</span></div>
-              <div class="stat"><strong id="rideCount">0</strong><span>Precisam carona</span></div>
-              <div class="stat"><strong id="seatsCount">0</strong><span>Vagas ofertadas</span></div>
-            </div>
             <div class="actions">
               <button class="btn btn--ghost" type="button" id="exportCsv">Exportar inscritos</button>
               <button class="btn btn--ghost" type="button" id="importPaymentsButton">Importar pagamentos</button>
@@ -1048,6 +1100,7 @@
         createdAt: row.created_at,
         fullName: row.full_name,
         email: row.email,
+        phone: row.phone || row.data?.phone,
         cpf: row.cpf,
         church: row.church,
         paymentMethod: row.payment_method,
@@ -1217,6 +1270,26 @@
     function formatCep(value) {
       const digits = onlyDigits(value).slice(0, 8);
       return digits.replace(/(\d{5})(\d{1,3})$/, "$1-$2");
+    }
+
+    function formatPhone(value) {
+      const digits = onlyDigits(value).slice(0, 11);
+      if (digits.length <= 10) {
+        return digits
+          .replace(/(\d{2})(\d)/, "($1) $2")
+          .replace(/(\d{4})(\d)/, "$1-$2");
+      }
+      return digits
+        .replace(/(\d{2})(\d)/, "($1) $2")
+        .replace(/(\d{5})(\d)/, "$1-$2");
+    }
+
+    function makeWhatsAppLink(record) {
+      const phone = onlyDigits(record.phone);
+      if (!phone) return "";
+      const brazilPhone = phone.length === 11 ? `55${phone}` : phone;
+      const text = `Olá, ${record.fullName}. Sua inscrição em ${record.eventName || "evento ICC"} foi recebida. Código: ${record.id}. QR Code de confirmação: ${record.validationLink || makeValidationLink(record)}`;
+      return `https://wa.me/${brazilPhone}?text=${encodeURIComponent(text)}`;
     }
 
     function getRecords() {
@@ -1441,7 +1514,7 @@
     function mailtoFor(record, type) {
       if (type === "admin") {
         const subject = `Nova inscrição - ${record.fullName}`;
-        const body = `Nova inscrição recebida para ${CONFIG.churchName}.\n\nEvento: ${record.eventName || "Evento"}\nNome: ${record.fullName}\nE-mail: ${record.email}\nCPF: ${record.cpf}\nIgreja: ${record.church}\nEndereço: ${buildAddress(record)}\nPrecisa de carona: ${record.needsRide}\nOferece carona: ${record.hasCar}${record.seats ? ` (${record.seats} vagas)` : ""}\nForma de pagamento: ${record.paymentMethod || "Não informada"}\nStatus de pagamento: ${record.paymentStatus}\nCódigo: ${record.id}\nReferência de pagamento: ${record.paymentReference}\nLink: ${record.registrationLink}\nValidação: ${record.validationLink || makeValidationLink(record)}`;
+        const body = `Nova inscrição recebida para ${CONFIG.churchName}.\n\nEvento: ${record.eventName || "Evento"}\nNome: ${record.fullName}\nE-mail: ${record.email}\nWhatsApp: ${record.phone || "Não informado"}\nCPF: ${record.cpf}\nIgreja: ${record.church}\nEndereço: ${buildAddress(record)}\nPrecisa de carona: ${record.needsRide}\nOferece carona: ${record.hasCar}${record.seats ? ` (${record.seats} vagas)` : ""}\nForma de pagamento: ${record.paymentMethod || "Não informada"}\nStatus de pagamento: ${record.paymentStatus}\nCódigo: ${record.id}\nReferência de pagamento: ${record.paymentReference}\nLink: ${record.registrationLink}\nValidação: ${record.validationLink || makeValidationLink(record)}`;
         return `mailto:${encodeURIComponent(CONFIG.adminEmail)}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
       }
 
@@ -1513,6 +1586,7 @@
       record.eventName = event ? event.name : "Evento";
       record.eventPaid = event ? event.paid : true;
       record.cpf = formatCpf(record.cpf);
+      record.phone = formatPhone(record.phone);
       record.cep = formatCep(record.cep);
       record.seats = record.hasCar === "Sim" ? record.seats : "";
       record.paymentMethod = event && !event.paid ? "Gratuito" : record.paymentMethod || "Não informada";
@@ -1549,6 +1623,7 @@
             <p class="hint">${record.eventPaid ? "A aprovação depende da confirmação de pagamento." : "Este evento é gratuito; a inscrição já fica aprovada se houver vaga."}</p>
             <p>
               <a class="btn btn--ghost" href="${mailtoFor(record, "registration")}">Preparar e-mail de inscrição</a>
+              ${record.phone ? `<a class="btn btn--ghost" href="${makeWhatsAppLink(record)}" target="_blank" rel="noopener">Enviar WhatsApp</a>` : ""}
               <a class="btn btn--ghost" href="${mailtoFor(record, "admin")}">Avisar administração</a>
               ${record.paymentStatus === "Pago" ? `<a class="btn btn--ghost" href="${mailtoFor(record, "paid")}">Preparar e-mail de pagamento</a>` : ""}
             </p>
@@ -1615,50 +1690,22 @@
       }
     }
 
-    function renderAdmin() {
-      if (!isAdminAuthenticated()) {
-        $("#adminTable").innerHTML = "";
-        return;
-      }
-
-      const records = getRecords();
-      const paid = records.filter((item) => item.paymentStatus === "Pago").length;
-      const review = records.filter((item) => item.paymentStatus === "Em análise" || item.paymentStatus === "Comprovante compatível").length;
-      const pending = records.length - paid - review;
-      const ride = records.filter((item) => item.needsRide === "Sim").length;
-      const seats = records.reduce((total, item) => total + Number(item.seats || 0), 0);
-      const churches = new Set(records.map((item) => item.church).filter(Boolean)).size;
-      const individualLinks = records.filter((item) => item.registrationLink).length;
-      const eventSummary = EVENTS.map((event) => `${event.name}: ${eventCount(event.key)}/${event.capacity}`).join(" | ");
-
-      $("#totalCount").textContent = records.length;
-      $("#paidCount").textContent = paid;
-      $("#pendingCount").textContent = pending;
-      $("#rideCount").textContent = ride;
-      $("#seatsCount").textContent = seats;
-
+    function renderAdminTable(records) {
       if (!records.length) {
-        $("#adminTable").innerHTML = `<div class="empty">Nenhuma inscrição registrada neste navegador. Assim que alguém finalizar a inscrição, os dados aparecem aqui.</div>`;
-        return;
+        return `<div class="empty">Nenhuma inscrição registrada para este evento.</div>`;
       }
 
-      $("#adminTable").innerHTML = `
-        <div class="empty">
-          <strong>Resumo do evento:</strong>
-          ${records.length} inscrito(s), ${paid} pagamento(s) confirmado(s), ${review} comprovante(s) em análise, ${pending} pendente(s), ${ride} pessoa(s) precisam de carona, ${seats} vaga(s) oferecida(s), ${churches} igreja(s)/unidade(s), ${individualLinks} link(s) individual(is) gerado(s).
-          <br><strong>Vagas por evento:</strong> ${escapeHtml(eventSummary)}
-        </div>
+      return `
         <table>
           <thead>
             <tr>
               <th>Inscrito</th>
-              <th>Evento</th>
               <th>CPF</th>
               <th>Igreja</th>
               <th>Endereço</th>
               <th>Transporte</th>
               <th>Pagamento</th>
-              <th>Acoes</th>
+              <th>Ações</th>
             </tr>
           </thead>
           <tbody>
@@ -1667,9 +1714,9 @@
                 <td>
                   <strong>${escapeHtml(record.fullName)}</strong><br>
                   <a class="map-link" href="mailto:${escapeHtml(record.email)}">${escapeHtml(record.email)}</a><br>
+                  ${record.phone ? `<a class="map-link" href="${makeWhatsAppLink(record)}" target="_blank" rel="noopener">${escapeHtml(record.phone)}</a><br>` : ""}
                   <small>${escapeHtml(record.id)}</small>
                 </td>
-                <td>${escapeHtml(record.eventName || (getEvent(getRecordEventKey(record)) || {}).name || "Evento")}</td>
                 <td>${escapeHtml(record.cpf)}</td>
                 <td>${escapeHtml(record.church)}</td>
                 <td>
@@ -1697,6 +1744,7 @@
                     <button class="mini" type="button" data-action="toggle" data-id="${record.id}">${record.paymentStatus === "Pago" ? "Corrigir para pendente" : "Confirmar manualmente"}</button>
                     <a class="mini" href="${mailtoFor(record, "registration")}">E-mail inscrição</a>
                     <a class="mini" href="${mailtoFor(record, "paid")}">E-mail pagamento</a>
+                    ${record.phone ? `<a class="mini" href="${makeWhatsAppLink(record)}" target="_blank" rel="noopener">WhatsApp</a>` : ""}
                     <button class="mini" type="button" data-action="remove" data-id="${record.id}">Remover</button>
                   </div>
                 </td>
@@ -1707,12 +1755,54 @@
       `;
     }
 
+    function renderAdmin() {
+      if (!isAdminAuthenticated()) {
+        $("#adminTable").innerHTML = "";
+        return;
+      }
+
+      const records = getRecords();
+      const sections = EVENTS.map((event) => {
+        const eventRows = records.filter((record) => getRecordEventKey(record) === event.key);
+        const paid = eventRows.filter((item) => item.paymentStatus === "Pago").length;
+        const review = eventRows.filter((item) => item.paymentStatus === "Em análise" || item.paymentStatus === "Comprovante compatível").length;
+        const pending = eventRows.length - paid - review;
+        const ride = eventRows.filter((item) => item.needsRide === "Sim").length;
+        const seats = eventRows.reduce((total, item) => total + Number(item.seats || 0), 0);
+        const available = Math.max(event.capacity - eventRows.length, 0);
+
+        return `
+          <section class="event-admin event-admin__section">
+            <div class="event-admin__head">
+              <h3>${escapeHtml(event.name)}</h3>
+              <span class="tag">${event.paid ? "Evento pago" : "Evento gratuito"}</span>
+            </div>
+            <div class="event-admin__metrics">
+              <div class="event-admin__metric"><strong>${eventRows.length}</strong><span>Inscrições</span></div>
+              <div class="event-admin__metric"><strong>${paid}</strong><span>Pagos/aprovados</span></div>
+              <div class="event-admin__metric"><strong>${pending}</strong><span>Pendentes</span></div>
+              <div class="event-admin__metric"><strong>${ride}</strong><span>Precisam carona</span></div>
+              <div class="event-admin__metric"><strong>${seats}</strong><span>Vagas ofertadas</span></div>
+            </div>
+            <div class="event-admin__vacancies">
+              <span>Vagas totais: <strong>${event.capacity}</strong></span>
+              <span>Inscrições realizadas: <strong>${eventRows.length}</strong></span>
+              <span>Vagas disponíveis: <strong>${available}</strong></span>
+            </div>
+            ${renderAdminTable(eventRows)}
+          </section>
+        `;
+      }).join("");
+
+      $("#adminTable").innerHTML = sections;
+    }
+
     function exportCsv() {
       const records = getRecords();
       if (!records.length) return;
 
       const headers = [
-        "id", "evento", "data", "nome", "email", "cpf", "igreja", "cep", "endereco",
+        "id", "evento", "data", "nome", "email", "celular", "cpf", "igreja", "cep", "endereco",
         "precisa_carona", "oferece_carona", "vagas", "forma_pagamento", "status_pagamento", "referencia_pagamento", "valor_comprovante", "id_transacao", "ocr_status", "ocr_resultado", "fonte_confirmacao", "comprovante", "integracao"
       ];
       const rows = records.map((record) => [
@@ -1721,6 +1811,7 @@
         record.createdAt,
         record.fullName,
         record.email,
+        record.phone,
         record.cpf,
         record.church,
         record.cep,
@@ -1864,6 +1955,10 @@
       event.target.setCustomValidity("");
     });
 
+    $("#phone").addEventListener("input", (event) => {
+      event.target.value = formatPhone(event.target.value);
+    });
+
     $("#proofCpf").addEventListener("input", (event) => {
       event.target.value = formatCpf(event.target.value);
     });
@@ -1942,10 +2037,13 @@
         submitButton.textContent = "Finalizando...";
 
         const record = await formToRecord();
-        const webhookResult = await postToWebhook(CONFIG.n8nRegistrationWebhookUrl, {
-          event: "registration.created",
-          registration: record
-        });
+        let webhookResult = { ok: false, skipped: true, data: {} };
+        if (CONFIG.n8nRegistrationWebhookUrl) {
+          webhookResult = await postToWebhook(CONFIG.n8nRegistrationWebhookUrl, {
+            event: "registration.created",
+            registration: record
+          });
+        }
         const paymentUrl = pickPaymentUrl(webhookResult.data);
         const supabaseResult = await syncRecordsToSupabase([record]);
         if (paymentUrl) {
@@ -1964,11 +2062,9 @@
         if (paymentUrl) {
           integrationParts.push("link de pagamento recebido");
         } else if (webhookResult.ok) {
-          integrationParts.push("enviado ao n8n");
-        } else if (webhookResult.skipped) {
-          integrationParts.push("n8n não configurado");
-        } else {
-          integrationParts.push(`falha no n8n${webhookResult.status ? ` (${webhookResult.status})` : ""}`);
+          integrationParts.push("automação externa notificada");
+        } else if (!webhookResult.skipped) {
+          integrationParts.push(`falha na automação externa${webhookResult.status ? ` (${webhookResult.status})` : ""}`);
         }
         record.integrationStatus = integrationParts.join("; ");
 
@@ -2017,22 +2113,27 @@
           ? "OCR encontrou dados compatíveis, aguardando confirmação da administração"
           : "Comprovante enviado pelo inscrito, aguardando conferência";
       }
-      const webhookResult = await postToWebhook(CONFIG.n8nProofWebhookUrl, {
-        event: "registration.proof_uploaded",
-        registrationId: records[index].id,
-        cpf: records[index].cpf,
-        email: records[index].email,
-        paymentReference: records[index].paymentReference,
-        proofAmount: records[index].proofAmount,
-        proofTransactionId: records[index].proofTransactionId,
-        proofOcrStatus: records[index].proofOcrStatus,
-        proofOcrMatches: records[index].proofOcrMatches,
-        paymentProof: records[index].paymentProof
-      });
+      let webhookResult = { ok: false, skipped: true };
+      if (CONFIG.n8nProofWebhookUrl) {
+        webhookResult = await postToWebhook(CONFIG.n8nProofWebhookUrl, {
+          event: "registration.proof_uploaded",
+          registrationId: records[index].id,
+          cpf: records[index].cpf,
+          email: records[index].email,
+          paymentReference: records[index].paymentReference,
+          proofAmount: records[index].proofAmount,
+          proofTransactionId: records[index].proofTransactionId,
+          proofOcrStatus: records[index].proofOcrStatus,
+          proofOcrMatches: records[index].proofOcrMatches,
+          paymentProof: records[index].paymentProof
+        });
+      }
       if (webhookResult.ok) {
-        records[index].integrationStatus = "Comprovante enviado ao n8n";
+        records[index].integrationStatus = "Comprovante enviado para automação externa";
       } else if (!webhookResult.skipped) {
-        records[index].integrationStatus = `Falha ao enviar comprovante ao n8n${webhookResult.status ? ` (${webhookResult.status})` : ""}`;
+        records[index].integrationStatus = `Falha ao enviar comprovante para automação externa${webhookResult.status ? ` (${webhookResult.status})` : ""}`;
+      } else if (uploadedProof.supabasePath) {
+        records[index].integrationStatus = "Comprovante salvo no Supabase";
       }
       saveRecords(records);
       proofSuccessBox.innerHTML = `<strong>Comprovante recebido.</strong><p>Status: <strong>${records[index].paymentStatus}</strong>. OCR: ${escapeHtml(records[index].proofOcrMatches)}. A administração ainda deve conferir antes de marcar como pago.</p>`;

@@ -4,6 +4,7 @@ create table if not exists public.congresso_inscricoes (
   updated_at timestamptz not null default now(),
   full_name text,
   email text,
+  phone text,
   cpf text,
   church text,
   payment_method text,
@@ -11,6 +12,9 @@ create table if not exists public.congresso_inscricoes (
   payment_reference text,
   data jsonb not null default '{}'::jsonb
 );
+
+alter table public.congresso_inscricoes
+add column if not exists phone text;
 
 create or replace function public.set_updated_at()
 returns trigger
