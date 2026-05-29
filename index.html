@@ -1268,7 +1268,13 @@
           updated_at: new Date().toISOString()
         }, { onConflict: "id" });
 
-      if (error) return { ok: false, error: error.message };
+      if (error) {
+        const message = String(error.message || "");
+        if (message.includes("admin_config") || message.includes("schema cache")) {
+          return { ok: false, error: "A tabela admin_config ainda não existe no Supabase. Rode o arquivo supabase-admin-config.sql no SQL Editor e tente novamente." };
+        }
+        return { ok: false, error: message };
+      }
       CONFIG.adminUser = adminUser;
       CONFIG.adminPasswordHash = passwordHash;
       return { ok: true };
