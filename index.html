@@ -1193,6 +1193,7 @@
     const CONFIG = {
       churchName: "Congresso da Igreja",
       churchPaymentUrl: "https://link-da-igreja.com/pagamento-congresso",
+      googleAppsScriptWebhookUrl: "",
       n8nRegistrationWebhookUrl: "",
       n8nProofWebhookUrl: "",
       supabaseUrl: "https://fzufcfefcikcklbkuerf.supabase.co",
@@ -1852,6 +1853,22 @@
       }
     }
 
+    async function postToGoogleAppsScript(url, payload) {
+      if (!url) return { ok: false, skipped: true };
+
+      try {
+        await fetch(url, {
+          method: "POST",
+          mode: "no-cors",
+          headers: { "Content-Type": "text/plain;charset=utf-8" },
+          body: JSON.stringify(payload)
+        });
+        return { ok: true, opaque: true };
+      } catch (error) {
+        return { ok: false, error: error.message };
+      }
+    }
+
     function pickPaymentUrl(webhookData) {
       const data = webhookData || {};
       return data.paymentUrl || data.payment_url || data.checkoutUrl || data.checkout_url || data.link || "";
@@ -1952,6 +1969,30 @@
       link.download = `${record.id}.ics`;
       link.click();
       URL.revokeObjectURL(link.href);
+    }
+
+    async function sendCalendarInvite(record) {
+      if (!CONFIG.googleAppsScriptWebhookUrl) return { ok: false, skipped: true };
+      return postToGoogleAppsScript(CONFIG.googleAppsScriptWebhookUrl, {
+        event: "calendar.invite_requested",
+        registration: {
+          id: record.id,
+          fullName: record.fullName,
+          email: record.email,
+          phone: record.phone,
+          eventName: record.eventName,
+          eventDescription: record.eventDescription,
+          eventDate: record.eventDate,
+          eventStartsAt: record.eventStartsAt,
+          eventEndsAt: record.eventEndsAt,
+          eventAddress: record.eventAddress,
+          eventMapsUrl: record.eventMapsUrl,
+          eventAudience: record.eventAudience,
+          validationLink: record.validationLink || makeValidationLink(record),
+          paymentStatus: record.paymentStatus,
+          paymentReference: record.paymentReference
+        }
+      });
     }
 
     function mailtoFor(record, type) {
@@ -2572,6 +2613,7 @@
         }
         const paymentUrl = pickPaymentUrl(webhookResult.data);
         const supabaseResult = await syncRecordsToSupabase([record]);
+        const calendarResult = await sendCalendarInvite(record);
         if (paymentUrl) {
           record.registrationLink = paymentUrl;
         }
@@ -2591,6 +2633,12 @@
           integrationParts.push("automação externa notificada");
         } else if (!webhookResult.skipped) {
           integrationParts.push(`falha na automação externa${webhookResult.status ? ` (${webhookResult.status})` : ""}`);
+        }
+
+        if (calendarResult.ok) {
+          integrationParts.push("convite enviado à Google Agenda");
+        } else if (!calendarResult.skipped) {
+          integrationParts.push(`falha no convite da agenda${calendarResult.status ? ` (${calendarResult.status})` : ""}`);
         }
         record.integrationStatus = integrationParts.join("; ");
 
