@@ -1710,7 +1710,7 @@
     }
 
     function eventTimeText(event) {
-      const date = event.date ? new Date(`${event.date}T12:00:00`).toLocaleDateString("pt-BR") : "Data a confirmar";
+      const date = event.date ? new Date(`${event.date}T12:00:00`).toLocaleDateString("pt-BR") : "A confirmar";
       return `Data: ${date} | Início: ${event.startsAt || "A confirmar"} | Término: ${event.endsAt || "A confirmar"}`;
     }
 
