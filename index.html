@@ -157,6 +157,20 @@
       background: #fff;
       text-align: left;
       box-shadow: 0 12px 30px rgba(31, 36, 33, .07);
+      transform: translateY(0);
+      transition: transform .16s ease, box-shadow .16s ease, border-color .16s ease, background .16s ease;
+    }
+
+    button.event-card:hover {
+      transform: translateY(2px);
+      border-color: var(--primary);
+      background: #fffaf2;
+      box-shadow: inset 0 3px 10px rgba(42, 33, 27, .16), 0 6px 16px rgba(31, 36, 33, .08);
+    }
+
+    button.event-card:active {
+      transform: translateY(4px);
+      box-shadow: inset 0 5px 14px rgba(42, 33, 27, .22), 0 2px 8px rgba(31, 36, 33, .05);
     }
 
     .event-card strong {
@@ -647,7 +661,6 @@
     <div class="wrap">
       <nav class="tabs" aria-label="Áreas da página">
         <button class="tab" type="button" aria-selected="true" data-tab="eventos">Eventos</button>
-        <button class="tab" type="button" aria-selected="false" data-tab="inscricao">Inscrição</button>
         <button class="tab" type="button" aria-selected="false" data-tab="comprovante">Comprovante opcional</button>
         <button class="tab" type="button" aria-selected="false" data-tab="admin">Administração</button>
       </nav>
@@ -1288,13 +1301,21 @@
       if (!event) return;
       selectedEventKey = event.key;
       $("#eventKey").value = event.key;
-      $("#selectedEventHint").innerHTML = `Evento selecionado: <strong>${escapeHtml(event.name)}</strong>. ${event.paid ? "Este evento tem inscrição paga." : "Este evento é gratuito."} Vagas: ${eventCount(event.key)}/${event.capacity}.`;
+      $("#selectedEventHint").innerHTML = `Você está se inscrevendo em: <strong>${escapeHtml(event.name)}</strong>. ${event.paid ? "Este evento tem inscrição paga." : "Este evento é gratuito."} Vagas: ${eventCount(event.key)}/${event.capacity}.`;
       $("#paymentSection").hidden = !event.paid;
       document.querySelectorAll("[name='paymentMethod']").forEach((input) => {
         input.required = event.paid;
         if (!event.paid) input.checked = false;
       });
       showTab("inscricao");
+    }
+
+    function makeEventRegistrationUrl(eventKey) {
+      const url = new URL(window.location.href);
+      url.search = "";
+      url.hash = "";
+      url.searchParams.set("evento", eventKey);
+      return url.toString();
     }
 
     function showMessage(container, title, text) {
@@ -1784,6 +1805,16 @@
       }
     }
 
+    function applyEventRegistrationFromUrl() {
+      const params = new URLSearchParams(window.location.search);
+      const eventKey = params.get("evento");
+      if (!eventKey) return false;
+      const event = getEvent(eventKey);
+      if (!event) return false;
+      selectEvent(event.key);
+      return true;
+    }
+
     async function applyValidationFromUrl() {
       const params = new URLSearchParams(window.location.search);
       const id = params.get("validar");
@@ -1869,7 +1900,7 @@
     $("#eventGrid").addEventListener("click", (event) => {
       const card = event.target.closest("[data-event]");
       if (!card || card.disabled) return;
-      selectEvent(card.dataset.event);
+      window.location.href = makeEventRegistrationUrl(card.dataset.event);
     });
 
     form.addEventListener("invalid", () => {
@@ -2123,7 +2154,7 @@
       renderEventCards();
       if (await applyValidationFromUrl()) return;
       applyProofReturnFromUrl();
-      if (!applyAdminRouteFromUrl()) {
+      if (!applyAdminRouteFromUrl() && !applyEventRegistrationFromUrl()) {
         showTab("eventos");
         updateAdminAccess();
       }
