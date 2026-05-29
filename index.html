@@ -140,6 +140,79 @@
       border-color: var(--primary);
     }
 
+    .event-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+      gap: 14px;
+      padding: 24px;
+    }
+
+    .event-card {
+      display: grid;
+      gap: 10px;
+      min-height: 190px;
+      padding: 18px;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: #fff;
+      text-align: left;
+      box-shadow: 0 12px 30px rgba(31, 36, 33, .07);
+    }
+
+    .event-card strong {
+      font-size: 20px;
+    }
+
+    .event-card span {
+      color: var(--muted);
+    }
+
+    .event-card.is-full {
+      opacity: .62;
+    }
+
+    .event-meta {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      align-items: center;
+    }
+
+    .validation-screen {
+      display: none;
+      min-height: 72vh;
+      align-items: center;
+      justify-items: center;
+      padding: 32px 20px;
+      text-align: center;
+    }
+
+    .validation-screen.is-visible {
+      display: grid;
+    }
+
+    .validation-card {
+      width: min(760px, 100%);
+      border-radius: 12px;
+      padding: 42px 24px;
+      color: #fff;
+      box-shadow: var(--shadow);
+    }
+
+    .validation-card h2 {
+      margin: 0 0 12px;
+      font-size: clamp(42px, 8vw, 86px);
+    }
+
+    .validation-card p {
+      margin: 10px 0;
+      font-size: 22px;
+    }
+
+    .validation-approved { background: #147a43; }
+    .validation-pending { background: #b98208; }
+    .validation-missing { background: #a61f2b; }
+
     .layout {
       display: grid;
       grid-template-columns: minmax(0, 1.35fr) minmax(320px, .65fr);
@@ -564,27 +637,38 @@
         <img src="assets/icc-logo-horizontal.png" alt="Igreja Reformada Comunidade da Cruz">
       </div>
       <p class="eyebrow">Igreja Reformada Comunidade da Cruz</p>
-      <h1>Inscrição para o congresso</h1>
-      <p>Preencha seus dados, informe transporte e acompanhe o QR Code de pagamento/confirmação fornecido pela igreja.</p>
+      <h1>Inscrição para eventos</h1>
+      <p>Escolha o evento, preencha seus dados e receba um QR Code de confirmação para entrada e controle da organização.</p>
     </div>
   </header>
 
   <main>
+    <section id="validationScreen" class="validation-screen" aria-live="polite"></section>
     <div class="wrap">
       <nav class="tabs" aria-label="Áreas da página">
-        <button class="tab" type="button" aria-selected="true" data-tab="inscricao">Inscrição</button>
+        <button class="tab" type="button" aria-selected="true" data-tab="eventos">Eventos</button>
+        <button class="tab" type="button" aria-selected="false" data-tab="inscricao">Inscrição</button>
         <button class="tab" type="button" aria-selected="false" data-tab="comprovante">Comprovante opcional</button>
         <button class="tab" type="button" aria-selected="false" data-tab="admin">Administração</button>
       </nav>
 
-      <section id="inscricao" class="layout">
+      <section id="eventos" class="panel">
+        <div class="panel__head">
+          <h2>Escolha o evento</h2>
+          <p>Cada evento tem limite de 450 vagas. Eventos pagos ficam pendentes até confirmação de pagamento.</p>
+        </div>
+        <div class="event-grid" id="eventGrid"></div>
+      </section>
+
+      <section id="inscricao" class="layout" style="display:none">
         <div class="panel">
           <div class="panel__head">
             <h2>Dados do inscrito</h2>
-            <p>Campos obrigatórios marcados com asterisco. O endereço é preenchido pelo CEP quando o serviço ViaCEP estiver disponível.</p>
+            <p id="selectedEventHint">Selecione um evento para iniciar a inscrição.</p>
           </div>
 
           <form id="registrationForm">
+            <input type="hidden" id="eventKey" name="eventKey" required>
             <fieldset>
               <legend>Identificação</legend>
               <div class="grid">
@@ -676,7 +760,7 @@
               </div>
             </fieldset>
 
-            <fieldset>
+            <fieldset id="paymentSection" hidden>
               <legend>Pagamento</legend>
               <div class="grid">
                 <div class="field field--full">
@@ -872,8 +956,17 @@
       adminUser: "secretaria",
       adminPassword: "5solas",
       adminPasswordHash: "a8be719ce804dbd06ea3eb3c9a9dc49feb56cc8248bda78a535af8180c34bb37",
+      publicSiteUrl: "https://eventosicc.com",
       storageKey: "congressoIgrejaInscricoes"
     };
+
+    const EVENTS = [
+      { key: "clube-biblia", name: "Clube da Bíblia", paid: false, capacity: 450, description: "Inscrição gratuita para o Clube da Bíblia." },
+      { key: "congresso-mulheres", name: "Congresso de mulheres", paid: true, capacity: 450, description: "Evento com inscrição paga." },
+      { key: "musical", name: "Musical", paid: false, capacity: 450, description: "Inscrição gratuita para participantes e organização do musical." },
+      { key: "missio-dei", name: "Missio Dei", paid: true, capacity: 450, description: "Evento com inscrição paga." },
+      { key: "encontro-casais", name: "Encontro de casais", paid: false, capacity: 450, description: "Inscrição gratuita para encontro de casais." }
+    ];
 
     const $ = (selector) => document.querySelector(selector);
     const form = $("#registrationForm");
@@ -888,6 +981,7 @@
     let memoryRecords = [];
     let memoryAdminSession = false;
     let supabaseClient = null;
+    let selectedEventKey = "";
 
     function storageAvailable(type) {
       try {
@@ -995,6 +1089,7 @@
         localStorage.setItem(CONFIG.storageKey, JSON.stringify(records));
       }
       renderAdmin();
+      renderEventCards();
     }
 
     async function syncRecordsToSupabase(records) {
@@ -1133,6 +1228,75 @@
       renderAdmin();
     }
 
+    function getEvent(eventKey) {
+      return EVENTS.find((event) => event.key === eventKey) || null;
+    }
+
+    function getRecordEventKey(record) {
+      return record.eventKey || "congresso-mulheres";
+    }
+
+    function eventRecords(eventKey) {
+      return getRecords().filter((record) => getRecordEventKey(record) === eventKey);
+    }
+
+    function eventCount(eventKey) {
+      return eventRecords(eventKey).length;
+    }
+
+    function eventApproved(record) {
+      const event = getEvent(getRecordEventKey(record));
+      if (!event) return false;
+      if (!event.paid) return true;
+      return record.paymentStatus === "Pago";
+    }
+
+    function eventValidationStatus(record) {
+      if (!record) return "missing";
+      return eventApproved(record) ? "approved" : "pending";
+    }
+
+    function renderEventCards() {
+      const grid = $("#eventGrid");
+      if (!grid) return;
+      grid.innerHTML = EVENTS.map((event) => {
+        const used = eventCount(event.key);
+        const available = Math.max(event.capacity - used, 0);
+        const isFull = available <= 0;
+        return `
+          <button class="event-card ${isFull ? "is-full" : ""}" type="button" data-event="${event.key}" ${isFull ? "disabled" : ""}>
+            <strong>${escapeHtml(event.name)}</strong>
+            <span>${escapeHtml(event.description)}</span>
+            <span class="event-meta">
+              <span class="badge ${event.paid ? "badge--pending" : "badge--paid"}">${event.paid ? "Pago" : "Gratuito"}</span>
+              <span class="badge badge--review">${used}/${event.capacity} vagas</span>
+            </span>
+            <span>${available} vaga(s) disponível(is)</span>
+          </button>
+        `;
+      }).join("") + `
+        <div class="event-card">
+          <strong>Próximos eventos</strong>
+          <span>Espaço reservado para adicionar eventos futuros e melhorias de agenda.</span>
+          <span class="event-meta"><span class="badge badge--pending">Agenda</span></span>
+        </div>
+      `;
+    }
+
+    function selectEvent(eventKey) {
+      const event = getEvent(eventKey);
+      if (!event) return;
+      selectedEventKey = event.key;
+      $("#eventKey").value = event.key;
+      $("#selectedEventHint").innerHTML = `Evento selecionado: <strong>${escapeHtml(event.name)}</strong>. ${event.paid ? "Este evento tem inscrição paga." : "Este evento é gratuito."} Vagas: ${eventCount(event.key)}/${event.capacity}.`;
+      $("#paymentSection").hidden = !event.paid;
+      document.querySelectorAll("[name='paymentMethod']").forEach((input) => {
+        input.required = event.paid;
+        if (!event.paid) input.checked = false;
+      });
+      showTab("inscricao");
+    }
+
     function showMessage(container, title, text) {
       container.classList.add("is-visible");
       container.innerHTML = `<strong>${escapeHtml(title)}</strong><p>${escapeHtml(text)}</p>`;
@@ -1209,13 +1373,14 @@
     function makeRegistrationLink(record) {
       let url;
       try {
-        url = new URL(moneyLink || window.location.href, window.location.href);
+        url = new URL(moneyLink || CONFIG.publicSiteUrl || window.location.href, window.location.href);
       } catch {
         url = new URL(window.location.href);
       }
       url.searchParams.set("inscricao", record.id);
       url.searchParams.set("referencia", record.paymentReference);
       url.searchParams.set("forma", record.paymentMethod || "");
+      url.searchParams.set("evento", record.eventKey || "");
       url.searchParams.set("nome", record.fullName);
       return url.toString();
     }
@@ -1225,12 +1390,20 @@
     }
 
     function makeProofReturnLink(record) {
-      const url = new URL(window.location.href);
+      const url = new URL(CONFIG.publicSiteUrl || window.location.href);
       url.search = "";
       url.hash = "";
       url.searchParams.set("acao", "comprovante");
       url.searchParams.set("inscricao", record.id);
       url.searchParams.set("referencia", record.paymentReference);
+      return url.toString();
+    }
+
+    function makeValidationLink(record) {
+      const url = new URL(CONFIG.publicSiteUrl || window.location.href);
+      url.search = "";
+      url.hash = "";
+      url.searchParams.set("validar", record.id);
       return url.toString();
     }
 
@@ -1247,7 +1420,7 @@
     function mailtoFor(record, type) {
       if (type === "admin") {
         const subject = `Nova inscrição - ${record.fullName}`;
-        const body = `Nova inscrição recebida para ${CONFIG.churchName}.\n\nNome: ${record.fullName}\nE-mail: ${record.email}\nCPF: ${record.cpf}\nIgreja: ${record.church}\nEndereço: ${buildAddress(record)}\nPrecisa de carona: ${record.needsRide}\nOferece carona: ${record.hasCar}${record.seats ? ` (${record.seats} vagas)` : ""}\nForma de pagamento: ${record.paymentMethod || "Não informada"}\nStatus de pagamento: ${record.paymentStatus}\nCódigo: ${record.id}\nReferência de pagamento: ${record.paymentReference}\nLink: ${record.registrationLink}`;
+        const body = `Nova inscrição recebida para ${CONFIG.churchName}.\n\nEvento: ${record.eventName || "Evento"}\nNome: ${record.fullName}\nE-mail: ${record.email}\nCPF: ${record.cpf}\nIgreja: ${record.church}\nEndereço: ${buildAddress(record)}\nPrecisa de carona: ${record.needsRide}\nOferece carona: ${record.hasCar}${record.seats ? ` (${record.seats} vagas)` : ""}\nForma de pagamento: ${record.paymentMethod || "Não informada"}\nStatus de pagamento: ${record.paymentStatus}\nCódigo: ${record.id}\nReferência de pagamento: ${record.paymentReference}\nLink: ${record.registrationLink}\nValidação: ${record.validationLink || makeValidationLink(record)}`;
         return `mailto:${encodeURIComponent(CONFIG.adminEmail)}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
       }
 
@@ -1256,8 +1429,8 @@
         ? `Pagamento confirmado - ${CONFIG.churchName}`
         : `Inscrição recebida - ${CONFIG.churchName}`;
       const body = isPaid
-        ? `Olá, ${record.fullName}.\n\nRecebemos a confirmação do seu pagamento para o ${CONFIG.churchName}.\n\nSeu código de inscrição: ${record.id}\n\nNos vemos no congresso.`
-        : `Olá, ${record.fullName}.\n\nSua inscrição no ${CONFIG.churchName} foi recebida.\n\nCódigo de inscrição: ${record.id}\nForma de pagamento: ${record.paymentMethod || "Não informada"}\nReferência de pagamento: ${record.paymentReference}\nLink/QR Code: ${record.registrationLink}\n\nUse a referência individual no pagamento. Pix, crédito e débito podem ser confirmados automaticamente pelo provedor/n8n; dinheiro será confirmado pela administração.`;
+        ? `Olá, ${record.fullName}.\n\nRecebemos a confirmação do seu pagamento para ${record.eventName || CONFIG.churchName}.\n\nSeu código de inscrição: ${record.id}\n\nNos vemos no evento.`
+        : `Olá, ${record.fullName}.\n\nSua inscrição em ${record.eventName || CONFIG.churchName} foi recebida.\n\nCódigo de inscrição: ${record.id}\nForma de pagamento: ${record.paymentMethod || "Não informada"}\nReferência de pagamento: ${record.paymentReference}\nQR Code/validação: ${record.validationLink || makeValidationLink(record)}\n\nGuarde o QR Code para apresentar à organização.`;
 
       return `mailto:${encodeURIComponent(record.email)}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
     }
@@ -1314,14 +1487,18 @@
       const record = Object.fromEntries(data.entries());
       record.id = `CGI-${Date.now().toString(36).toUpperCase()}`;
       record.createdAt = new Date().toISOString();
+      record.eventKey = record.eventKey || selectedEventKey;
+      const event = getEvent(record.eventKey);
+      record.eventName = event ? event.name : "Evento";
+      record.eventPaid = event ? event.paid : true;
       record.cpf = formatCpf(record.cpf);
       record.cep = formatCep(record.cep);
       record.seats = record.hasCar === "Sim" ? record.seats : "";
-      record.paymentMethod = record.paymentMethod || "Não informada";
-      record.paymentStatus = "Pendente";
+      record.paymentMethod = event && !event.paid ? "Gratuito" : record.paymentMethod || "Não informada";
+      record.paymentStatus = event && !event.paid ? "Pago" : "Pendente";
       record.paymentReference = makePaymentReference(record);
       record.paymentConfirmedAt = "";
-      record.paymentConfirmationSource = "";
+      record.paymentConfirmationSource = event && !event.paid ? "Evento gratuito" : "";
       record.paymentProof = { name: "", type: "", size: 0, data: "" };
       record.proofAmount = "";
       record.proofTransactionId = "";
@@ -1329,6 +1506,7 @@
       record.proofOcrStatus = "";
       record.proofOcrMatches = "";
       record.registrationLink = makeRegistrationLink(record);
+      record.validationLink = makeValidationLink(record);
       record.integrationStatus = "Local";
       return record;
     }
@@ -1337,16 +1515,17 @@
       successBox.classList.add("is-visible");
       successBox.innerHTML = `
         <strong>Inscrição realizada.</strong>
+        <p>Evento: <strong>${escapeHtml(record.eventName || "Evento")}</strong>.</p>
         <p>Código: <strong>${record.id}</strong>. Referência de pagamento: <strong>${record.paymentReference}</strong>.</p>
         <p>Forma de pagamento escolhida: <strong>${record.paymentMethod || "Não informada"}</strong>.</p>
         <p>Status da integração: <strong>${record.integrationStatus || "Local"}</strong>.</p>
         <div class="qr-wrap">
-          <img alt="QR Code do pagamento individual" src="${makeQrUrl(record.registrationLink)}">
+          <img alt="QR Code de confirmação da inscrição" src="${makeQrUrl(record.validationLink || makeValidationLink(record))}">
           <div>
-            <p>Este QR Code é individual. Ele leva a referência <strong>${record.paymentReference}</strong> e a forma <strong>${record.paymentMethod || "Não informada"}</strong>, permitindo identificar automaticamente quem pagou quando houver provedor/n8n.</p>
-            <p><a class="map-link" href="${record.registrationLink}" target="_blank" rel="noopener">Abrir link individual de pagamento</a></p>
-            <p><a class="map-link" href="${makeProofReturnLink(record)}">Enviar comprovante por link individual</a></p>
-            <p class="hint">A confirmação de pagamento deve vir do provedor/n8n ou ser feita pela administração após conferência.</p>
+            <p>Este QR Code confirma a inscrição. Ao escanear, a organização verá verde para aprovado, amarelo para pendente e vermelho quando a inscrição não existir.</p>
+            ${record.eventPaid ? `<p><a class="map-link" href="${record.registrationLink}" target="_blank" rel="noopener">Abrir link individual de pagamento</a></p><p><a class="map-link" href="${makeProofReturnLink(record)}">Enviar comprovante por link individual</a></p>` : ""}
+            <p><a class="map-link" href="${record.validationLink || makeValidationLink(record)}" target="_blank" rel="noopener">Abrir confirmação da inscrição</a></p>
+            <p class="hint">${record.eventPaid ? "A aprovação depende da confirmação de pagamento." : "Este evento é gratuito; a inscrição já fica aprovada se houver vaga."}</p>
             <p>
               <a class="btn btn--ghost" href="${mailtoFor(record, "registration")}">Preparar e-mail de inscrição</a>
               <a class="btn btn--ghost" href="${mailtoFor(record, "admin")}">Avisar administração</a>
@@ -1429,6 +1608,7 @@
       const seats = records.reduce((total, item) => total + Number(item.seats || 0), 0);
       const churches = new Set(records.map((item) => item.church).filter(Boolean)).size;
       const individualLinks = records.filter((item) => item.registrationLink).length;
+      const eventSummary = EVENTS.map((event) => `${event.name}: ${eventCount(event.key)}/${event.capacity}`).join(" | ");
 
       $("#totalCount").textContent = records.length;
       $("#paidCount").textContent = paid;
@@ -1445,11 +1625,13 @@
         <div class="empty">
           <strong>Resumo do evento:</strong>
           ${records.length} inscrito(s), ${paid} pagamento(s) confirmado(s), ${review} comprovante(s) em análise, ${pending} pendente(s), ${ride} pessoa(s) precisam de carona, ${seats} vaga(s) oferecida(s), ${churches} igreja(s)/unidade(s), ${individualLinks} link(s) individual(is) gerado(s).
+          <br><strong>Vagas por evento:</strong> ${escapeHtml(eventSummary)}
         </div>
         <table>
           <thead>
             <tr>
               <th>Inscrito</th>
+              <th>Evento</th>
               <th>CPF</th>
               <th>Igreja</th>
               <th>Endereço</th>
@@ -1466,6 +1648,7 @@
                   <a class="map-link" href="mailto:${escapeHtml(record.email)}">${escapeHtml(record.email)}</a><br>
                   <small>${escapeHtml(record.id)}</small>
                 </td>
+                <td>${escapeHtml(record.eventName || (getEvent(getRecordEventKey(record)) || {}).name || "Evento")}</td>
                 <td>${escapeHtml(record.cpf)}</td>
                 <td>${escapeHtml(record.church)}</td>
                 <td>
@@ -1508,11 +1691,12 @@
       if (!records.length) return;
 
       const headers = [
-        "id", "data", "nome", "email", "cpf", "igreja", "cep", "endereco",
+        "id", "evento", "data", "nome", "email", "cpf", "igreja", "cep", "endereco",
         "precisa_carona", "oferece_carona", "vagas", "forma_pagamento", "status_pagamento", "referencia_pagamento", "valor_comprovante", "id_transacao", "ocr_status", "ocr_resultado", "fonte_confirmacao", "comprovante", "integracao"
       ];
       const rows = records.map((record) => [
         record.id,
+        record.eventName || (getEvent(getRecordEventKey(record)) || {}).name,
         record.createdAt,
         record.fullName,
         record.email,
@@ -1580,6 +1764,7 @@
       document.querySelectorAll("[data-tab]").forEach((tab) => {
         tab.setAttribute("aria-selected", String(tab.dataset.tab === tabName));
       });
+      $("#eventos").style.display = tabName === "eventos" ? "" : "none";
       $("#inscricao").style.display = tabName === "inscricao" ? "" : "none";
       $("#comprovante").classList.toggle("is-visible", tabName === "comprovante");
       $("#admin").classList.toggle("is-visible", tabName === "admin");
@@ -1597,6 +1782,30 @@
         proofSuccessBox.classList.add("is-visible");
         proofSuccessBox.innerHTML = `<strong>Link individual localizado.</strong><p>Referência esperada: <strong>${escapeHtml(reference)}</strong>. O OCR tentará procurar essa referência no comprovante enviado.</p>`;
       }
+    }
+
+    async function applyValidationFromUrl() {
+      const params = new URLSearchParams(window.location.search);
+      const id = params.get("validar");
+      if (!id) return false;
+      await loadRecordsFromSupabase();
+      const record = getRecords().find((item) => String(item.id).toUpperCase() === id.toUpperCase());
+      const status = eventValidationStatus(record);
+      const screen = $("#validationScreen");
+      const title = status === "approved" ? "APROVADA" : status === "pending" ? "PENDENTE" : "NAO ENCONTRADA";
+      const className = status === "approved" ? "validation-approved" : status === "pending" ? "validation-pending" : "validation-missing";
+      screen.classList.add("is-visible");
+      screen.innerHTML = `
+        <div class="validation-card ${className}">
+          <h2>${title}</h2>
+          <p>${record ? escapeHtml(record.fullName) : "Não existe inscrição com este código."}</p>
+          <p>${record ? escapeHtml(record.eventName || "Evento") : `Código: ${escapeHtml(id)}`}</p>
+          <p>${record ? `Status de pagamento: ${escapeHtml(record.paymentStatus || "Pendente")}` : ""}</p>
+        </div>
+      `;
+      document.querySelector(".wrap").style.display = "none";
+      document.querySelector(".hero").style.display = "none";
+      return true;
     }
 
     function goToAdminPanel() {
@@ -1657,6 +1866,12 @@
       });
     });
 
+    $("#eventGrid").addEventListener("click", (event) => {
+      const card = event.target.closest("[data-event]");
+      if (!card || card.disabled) return;
+      selectEvent(card.dataset.event);
+    });
+
     form.addEventListener("invalid", () => {
       showMessage(successBox, "Revise os campos obrigatórios.", "Preencha os campos destacados antes de finalizar a inscrição.");
     }, true);
@@ -1679,6 +1894,18 @@
           return;
         }
         $("#cpf").setCustomValidity("");
+
+        const event = getEvent($("#eventKey").value);
+        if (!event) {
+          showMessage(successBox, "Selecione um evento.", "Volte para a tela de eventos e escolha onde deseja se inscrever.");
+          showTab("eventos");
+          return;
+        }
+        if (eventCount(event.key) >= event.capacity) {
+          showMessage(successBox, "Vagas esgotadas.", `O evento ${event.name} atingiu o limite de ${event.capacity} vagas.`);
+          renderEventCards();
+          return;
+        }
 
         submitButton.disabled = true;
         submitButton.textContent = "Finalizando...";
@@ -1891,11 +2118,16 @@
       setAdminAuthenticated(false);
     });
 
-    applyProofReturnFromUrl();
-    if (!applyAdminRouteFromUrl()) {
-      updateAdminAccess();
-    }
-    loadRecordsFromSupabase();
+    (async () => {
+      await loadRecordsFromSupabase();
+      renderEventCards();
+      if (await applyValidationFromUrl()) return;
+      applyProofReturnFromUrl();
+      if (!applyAdminRouteFromUrl()) {
+        showTab("eventos");
+        updateAdminAccess();
+      }
+    })();
   </script>
 </body>
 </html>
