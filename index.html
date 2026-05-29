@@ -553,6 +553,60 @@
       border-bottom: 1px solid var(--line);
     }
 
+    .admin-event-manager {
+      margin: 18px 24px;
+      padding: 16px;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: #fff;
+    }
+
+    .admin-event-manager h3 {
+      margin: 0 0 12px;
+    }
+
+    .admin-event-tabs {
+      display: flex;
+      gap: 8px;
+      overflow-x: auto;
+      padding: 4px 24px 12px;
+      margin-top: 6px;
+    }
+
+    .admin-event-tab {
+      flex: 0 0 auto;
+      min-height: 40px;
+      padding: 0 14px;
+      border-radius: 8px;
+      border: 1px solid var(--line);
+      background: #fff;
+      color: var(--ink);
+      font-weight: 800;
+    }
+
+    .admin-event-tab[aria-selected="true"] {
+      background: var(--primary);
+      color: #fff;
+      border-color: var(--primary);
+    }
+
+    .admin-event-list {
+      display: grid;
+      gap: 8px;
+      margin-top: 12px;
+    }
+
+    .admin-event-row {
+      display: grid;
+      grid-template-columns: 1fr auto;
+      gap: 10px;
+      align-items: center;
+      padding: 10px;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: var(--paper-2);
+    }
+
     .admin-login {
       padding: 24px;
       border-bottom: 1px solid var(--line);
@@ -1027,6 +1081,59 @@
             </div>
           </div>
 
+          <div class="admin-event-manager">
+            <h3>Gerenciar eventos</h3>
+            <form id="adminEventForm">
+              <div class="grid">
+                <div class="field">
+                  <label for="eventNameInput">Nome do evento *</label>
+                  <input id="eventNameInput" name="name" required>
+                </div>
+                <div class="field">
+                  <label for="eventPaidInput">Tipo de inscrição *</label>
+                  <select id="eventPaidInput" name="paid" required>
+                    <option value="false">Não pago</option>
+                    <option value="true">Pago</option>
+                  </select>
+                </div>
+                <div class="field">
+                  <label for="eventCapacityInput">Número de vagas *</label>
+                  <input id="eventCapacityInput" name="capacity" type="number" min="1" value="450" required>
+                </div>
+                <div class="field">
+                  <label for="eventStartsInput">Horário de início *</label>
+                  <input id="eventStartsInput" name="startsAt" placeholder="Ex.: 19h30" required>
+                </div>
+                <div class="field">
+                  <label for="eventEndsInput">Horário de término *</label>
+                  <input id="eventEndsInput" name="endsAt" placeholder="Ex.: 22h00" required>
+                </div>
+                <div class="field">
+                  <label for="eventAudienceInput">Para quem é voltado *</label>
+                  <input id="eventAudienceInput" name="audience" placeholder="Ex.: mulheres, casais, jovens" required>
+                </div>
+                <div class="field field--full">
+                  <label for="eventAddressInput">Onde será *</label>
+                  <input id="eventAddressInput" name="address" placeholder="Endereço ou nome do local" required>
+                </div>
+                <div class="field field--full">
+                  <label for="eventMapsInput">Link do Maps</label>
+                  <input id="eventMapsInput" name="mapsUrl" type="url" placeholder="https://maps.google.com/...">
+                </div>
+                <div class="field field--full">
+                  <label for="eventDescriptionInput">Descrição *</label>
+                  <textarea id="eventDescriptionInput" name="description" rows="3" required></textarea>
+                </div>
+              </div>
+              <div class="actions">
+                <button class="btn btn--primary" type="submit">Criar evento</button>
+              </div>
+              <div class="success" id="adminEventMessage" role="status" aria-live="polite"></div>
+            </form>
+            <div class="admin-event-list" id="adminEventList"></div>
+          </div>
+
+          <div class="admin-event-tabs" id="adminEventTabs" role="tablist" aria-label="Eventos cadastrados"></div>
           <div class="table-wrap" id="adminTable"></div>
         </div>
       </section>
@@ -1045,6 +1152,7 @@
       supabaseAnonKey: "sb_publishable__7eNcEjFykry9wBXn8tpzA_evGhJd9_",
       supabaseTable: "congresso_inscricoes",
       supabaseAdminTable: "admin_config",
+      supabaseEventsTable: "eventos_config",
       supabaseProofBucket: "comprovantes",
       adminEmail: "administracao@igreja.com",
       adminUser: "secretaria",
@@ -1062,12 +1170,13 @@
     };
 
     const EVENTS = [
-      { key: "clube-biblia", name: "Clube da Bíblia", paid: false, capacity: 450, description: "Inscrição gratuita para o Clube da Bíblia.", ...DEFAULT_EVENT_PLACE },
-      { key: "congresso-mulheres", name: "Congresso de mulheres", paid: true, capacity: 450, description: "Evento com inscrição paga.", ...DEFAULT_EVENT_PLACE },
-      { key: "musical", name: "Musical", paid: false, capacity: 450, description: "Inscrição gratuita para participantes e organização do musical.", ...DEFAULT_EVENT_PLACE },
-      { key: "missio-dei", name: "Missio Dei", paid: true, capacity: 450, description: "Evento com inscrição paga.", ...DEFAULT_EVENT_PLACE },
-      { key: "encontro-casais", name: "Encontro de casais", paid: false, capacity: 450, description: "Inscrição gratuita para encontro de casais.", ...DEFAULT_EVENT_PLACE }
+      { key: "clube-biblia", name: "Clube da Bíblia", paid: false, capacity: 450, audience: "Toda a igreja", description: "Inscrição gratuita para o Clube da Bíblia.", ...DEFAULT_EVENT_PLACE },
+      { key: "congresso-mulheres", name: "Congresso de mulheres", paid: true, capacity: 450, audience: "Mulheres", description: "Evento com inscrição paga.", ...DEFAULT_EVENT_PLACE },
+      { key: "musical", name: "Musical", paid: false, capacity: 450, audience: "Participantes e organização", description: "Inscrição gratuita para participantes e organização do musical.", ...DEFAULT_EVENT_PLACE },
+      { key: "missio-dei", name: "Missio Dei", paid: true, capacity: 450, audience: "Toda a igreja", description: "Evento com inscrição paga.", ...DEFAULT_EVENT_PLACE },
+      { key: "encontro-casais", name: "Encontro de casais", paid: false, capacity: 450, audience: "Casais", description: "Inscrição gratuita para encontro de casais.", ...DEFAULT_EVENT_PLACE }
     ];
+    const DEFAULT_EVENTS = EVENTS.map((event) => ({ ...event }));
 
     const $ = (selector) => document.querySelector(selector);
     const form = $("#registrationForm");
@@ -1083,6 +1192,7 @@
     let memoryAdminSession = false;
     let supabaseClient = null;
     let selectedEventKey = "";
+    let activeAdminEventKey = EVENTS[0]?.key || "";
 
     function storageAvailable(type) {
       try {
@@ -1109,6 +1219,136 @@
         supabaseClient = window.supabase.createClient(CONFIG.supabaseUrl, CONFIG.supabaseAnonKey);
       }
       return supabaseClient;
+    }
+
+    function slugify(value) {
+      return String(value || "evento")
+        .normalize("NFD")
+        .replace(/[\u0300-\u036f]/g, "")
+        .toLowerCase()
+        .replace(/[^a-z0-9]+/g, "-")
+        .replace(/^-+|-+$/g, "")
+        .slice(0, 48) || `evento-${Date.now().toString(36)}`;
+    }
+
+    function normalizeEvent(event) {
+      const name = String(event.name || "Evento").trim();
+      const key = String(event.key || slugify(name)).trim();
+      const address = String(event.address || DEFAULT_EVENT_PLACE.address).trim();
+      return {
+        key,
+        name,
+        paid: event.paid === true || event.paid === "true",
+        capacity: Number(event.capacity || 450),
+        audience: String(event.audience || "Toda a igreja").trim(),
+        description: String(event.description || "").trim(),
+        address,
+        mapsUrl: String(event.mapsUrl || `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(address)}`).trim(),
+        startsAt: String(event.startsAt || "A confirmar").trim(),
+        endsAt: String(event.endsAt || "A confirmar").trim()
+      };
+    }
+
+    function saveEventsLocal() {
+      if (hasLocalStorage) {
+        localStorage.setItem(`${CONFIG.storageKey}:events`, JSON.stringify(EVENTS));
+      }
+    }
+
+    function loadEventsLocal() {
+      if (!hasLocalStorage) return;
+      try {
+        const stored = JSON.parse(localStorage.getItem(`${CONFIG.storageKey}:events`) || "[]");
+        if (stored.length) {
+          EVENTS.splice(0, EVENTS.length, ...stored.map(normalizeEvent));
+          activeAdminEventKey = EVENTS[0]?.key || "";
+        }
+      } catch {
+        EVENTS.splice(0, EVENTS.length, ...DEFAULT_EVENTS.map(normalizeEvent));
+      }
+    }
+
+    function eventToSupabaseRow(event) {
+      const normalized = normalizeEvent(event);
+      return {
+        key: normalized.key,
+        name: normalized.name,
+        paid: normalized.paid,
+        capacity: normalized.capacity,
+        audience: normalized.audience,
+        description: normalized.description,
+        address: normalized.address,
+        maps_url: normalized.mapsUrl,
+        starts_at: normalized.startsAt,
+        ends_at: normalized.endsAt,
+        active: true,
+        data: normalized
+      };
+    }
+
+    function rowToEvent(row) {
+      return normalizeEvent({
+        ...(row.data || {}),
+        key: row.key,
+        name: row.name,
+        paid: row.paid,
+        capacity: row.capacity,
+        audience: row.audience,
+        description: row.description,
+        address: row.address,
+        mapsUrl: row.maps_url,
+        startsAt: row.starts_at,
+        endsAt: row.ends_at
+      });
+    }
+
+    async function loadEventsFromSupabase() {
+      const client = getSupabaseClient();
+      if (!client || !CONFIG.supabaseEventsTable) {
+        loadEventsLocal();
+        return;
+      }
+
+      const { data, error } = await client
+        .from(CONFIG.supabaseEventsTable)
+        .select("*")
+        .eq("active", true)
+        .order("created_at", { ascending: true });
+
+      if (error) {
+        console.warn("Falha ao carregar eventos:", error.message);
+        loadEventsLocal();
+        return;
+      }
+
+      const rows = (data || []).map(rowToEvent);
+      if (rows.length) {
+        EVENTS.splice(0, EVENTS.length, ...rows);
+      } else {
+        await syncEventsToSupabase(EVENTS);
+      }
+      activeAdminEventKey = EVENTS[0]?.key || "";
+      saveEventsLocal();
+    }
+
+    async function syncEventsToSupabase(events) {
+      const client = getSupabaseClient();
+      if (!client || !CONFIG.supabaseEventsTable) return { ok: false, skipped: true };
+      const { error } = await client
+        .from(CONFIG.supabaseEventsTable)
+        .upsert(events.map(eventToSupabaseRow), { onConflict: "key" });
+      if (error) {
+        console.warn("Falha ao salvar eventos:", error.message);
+        return { ok: false, error: error.message };
+      }
+      return { ok: true };
+    }
+
+    async function deleteEventFromSupabase(eventKey) {
+      const client = getSupabaseClient();
+      if (!client || !CONFIG.supabaseEventsTable) return;
+      const { error } = await client.from(CONFIG.supabaseEventsTable).update({ active: false }).eq("key", eventKey);
+      if (error) console.warn("Falha ao excluir evento:", error.message);
     }
 
     function recordToSupabaseRow(record) {
@@ -1391,6 +1631,7 @@
     function eventDetailsHtml(event) {
       return `
         <span>${escapeHtml(eventTimeText(event))}</span>
+        <span>Voltado para: ${escapeHtml(event.audience || "Toda a igreja")}</span>
         <span>Endereço: ${escapeHtml(event.address || "A confirmar")}</span>
       `;
     }
@@ -1434,9 +1675,10 @@
       $("#eventKey").value = event.key;
       $("#selectedEventHint").innerHTML = `
         Você está se inscrevendo em: <strong>${escapeHtml(event.name)}</strong>. ${event.paid ? "Este evento tem inscrição paga." : "Este evento é gratuito."} Vagas: ${eventCount(event.key)}/${event.capacity}.
-        <span class="event-info">
+          <span class="event-info">
           <span>${escapeHtml(event.description)}</span>
           <span>${escapeHtml(eventTimeText(event))}</span>
+          <span>Voltado para: ${escapeHtml(event.audience || "Toda a igreja")}</span>
           <span>Endereço: <a class="map-link" href="${escapeHtml(event.mapsUrl)}" target="_blank" rel="noopener">${escapeHtml(event.address || "A confirmar")}</a></span>
         </span>
       `;
@@ -1579,7 +1821,7 @@
     function mailtoFor(record, type) {
       if (type === "admin") {
         const subject = `Nova inscrição - ${record.fullName}`;
-        const body = `Nova inscrição recebida para ${CONFIG.churchName}.\n\nEvento: ${record.eventName || "Evento"}\nDescrição: ${record.eventDescription || "Não informada"}\nHorário: ${record.eventTime || "A confirmar"}\nLocal: ${record.eventAddress || "A confirmar"}\nMaps: ${record.eventMapsUrl || ""}\n\nNome: ${record.fullName}\nE-mail: ${record.email}\nWhatsApp: ${record.phone || "Não informado"}\nCPF: ${record.cpf}\nIgreja: ${record.church}\nEndereço: ${buildAddress(record)}\nPrecisa de carona: ${record.needsRide}\nOferece carona: ${record.hasCar}${record.seats ? ` (${record.seats} vagas)` : ""}\nForma de pagamento: ${record.paymentMethod || "Não informada"}\nStatus de pagamento: ${record.paymentStatus}\nCódigo: ${record.id}\nReferência de pagamento: ${record.paymentReference}\nLink: ${record.registrationLink}\nValidação: ${record.validationLink || makeValidationLink(record)}`;
+        const body = `Nova inscrição recebida para ${CONFIG.churchName}.\n\nEvento: ${record.eventName || "Evento"}\nDescrição: ${record.eventDescription || "Não informada"}\nHorário: ${record.eventTime || "A confirmar"}\nVoltado para: ${record.eventAudience || "Toda a igreja"}\nLocal: ${record.eventAddress || "A confirmar"}\nMaps: ${record.eventMapsUrl || ""}\n\nNome: ${record.fullName}\nE-mail: ${record.email}\nWhatsApp: ${record.phone || "Não informado"}\nCPF: ${record.cpf}\nIgreja: ${record.church}\nEndereço: ${buildAddress(record)}\nPrecisa de carona: ${record.needsRide}\nOferece carona: ${record.hasCar}${record.seats ? ` (${record.seats} vagas)` : ""}\nForma de pagamento: ${record.paymentMethod || "Não informada"}\nStatus de pagamento: ${record.paymentStatus}\nCódigo: ${record.id}\nReferência de pagamento: ${record.paymentReference}\nLink: ${record.registrationLink}\nValidação: ${record.validationLink || makeValidationLink(record)}`;
         return `mailto:${encodeURIComponent(CONFIG.adminEmail)}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
       }
 
@@ -1588,8 +1830,8 @@
         ? `Pagamento confirmado - ${CONFIG.churchName}`
         : `Inscrição recebida - ${CONFIG.churchName}`;
       const body = isPaid
-        ? `Olá, ${record.fullName}.\n\nRecebemos a confirmação do seu pagamento para ${record.eventName || CONFIG.churchName}.\n\nHorário: ${record.eventTime || "A confirmar"}\nLocal: ${record.eventAddress || "A confirmar"}\nMaps: ${record.eventMapsUrl || ""}\n\nSeu código de inscrição: ${record.id}\n\nNos vemos no evento.`
-        : `Olá, ${record.fullName}.\n\nSua inscrição em ${record.eventName || CONFIG.churchName} foi recebida.\n\n${record.eventDescription || ""}\nHorário: ${record.eventTime || "A confirmar"}\nLocal: ${record.eventAddress || "A confirmar"}\nMaps: ${record.eventMapsUrl || ""}\n\nCódigo de inscrição: ${record.id}\nForma de pagamento: ${record.paymentMethod || "Não informada"}\nReferência de pagamento: ${record.paymentReference}\nQR Code/validação: ${record.validationLink || makeValidationLink(record)}\n\nGuarde o QR Code para apresentar à organização.`;
+        ? `Olá, ${record.fullName}.\n\nRecebemos a confirmação do seu pagamento para ${record.eventName || CONFIG.churchName}.\n\nHorário: ${record.eventTime || "A confirmar"}\nVoltado para: ${record.eventAudience || "Toda a igreja"}\nLocal: ${record.eventAddress || "A confirmar"}\nMaps: ${record.eventMapsUrl || ""}\n\nSeu código de inscrição: ${record.id}\n\nNos vemos no evento.`
+        : `Olá, ${record.fullName}.\n\nSua inscrição em ${record.eventName || CONFIG.churchName} foi recebida.\n\n${record.eventDescription || ""}\nHorário: ${record.eventTime || "A confirmar"}\nVoltado para: ${record.eventAudience || "Toda a igreja"}\nLocal: ${record.eventAddress || "A confirmar"}\nMaps: ${record.eventMapsUrl || ""}\n\nCódigo de inscrição: ${record.id}\nForma de pagamento: ${record.paymentMethod || "Não informada"}\nReferência de pagamento: ${record.paymentReference}\nQR Code/validação: ${record.validationLink || makeValidationLink(record)}\n\nGuarde o QR Code para apresentar à organização.`;
 
       return `mailto:${encodeURIComponent(record.email)}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
     }
@@ -1653,6 +1895,7 @@
       record.eventDescription = event ? event.description : "";
       record.eventAddress = event ? event.address : "";
       record.eventMapsUrl = event ? event.mapsUrl : "";
+      record.eventAudience = event ? event.audience : "";
       record.eventStartsAt = event ? event.startsAt : "";
       record.eventEndsAt = event ? event.endsAt : "";
       record.eventTime = event ? eventTimeText(event) : "A confirmar";
@@ -1684,6 +1927,7 @@
         <p>Evento: <strong>${escapeHtml(record.eventName || "Evento")}</strong>.</p>
         <p>${escapeHtml(record.eventDescription || "")}</p>
         <p>Horário: <strong>${escapeHtml(record.eventTime || "A confirmar")}</strong>.</p>
+        <p>Voltado para: <strong>${escapeHtml(record.eventAudience || "Toda a igreja")}</strong>.</p>
         <p>Endereço: <a class="map-link" href="${escapeHtml(record.eventMapsUrl || "#")}" target="_blank" rel="noopener">${escapeHtml(record.eventAddress || "A confirmar")}</a>.</p>
         <p>Código: <strong>${record.id}</strong>. Referência de pagamento: <strong>${record.paymentReference}</strong>.</p>
         <p>Forma de pagamento escolhida: <strong>${record.paymentMethod || "Não informada"}</strong>.</p>
@@ -1829,49 +2073,80 @@
       `;
     }
 
+    function renderAdminEventManager() {
+      const list = $("#adminEventList");
+      if (!list) return;
+      list.innerHTML = EVENTS.map((event) => {
+        const total = eventCount(event.key);
+        return `
+          <div class="admin-event-row">
+            <div>
+              <strong>${escapeHtml(event.name)}</strong><br>
+              <small>${escapeHtml(event.paid ? "Pago" : "Não pago")} | ${escapeHtml(eventTimeText(event))} | ${total}/${event.capacity} inscrição(ões)</small>
+            </div>
+            <button class="mini" type="button" data-action="delete-event" data-event="${escapeHtml(event.key)}" ${total ? "disabled" : ""}>${total ? "Há inscrições" : "Excluir"}</button>
+          </div>
+        `;
+      }).join("");
+    }
+
     function renderAdmin() {
       if (!isAdminAuthenticated()) {
         $("#adminTable").innerHTML = "";
+        $("#adminEventTabs").innerHTML = "";
         return;
       }
 
       const records = getRecords();
-      const sections = EVENTS.map((event) => {
-        const eventRows = records.filter((record) => getRecordEventKey(record) === event.key);
-        const paid = eventRows.filter((item) => item.paymentStatus === "Pago").length;
-        const review = eventRows.filter((item) => item.paymentStatus === "Em análise" || item.paymentStatus === "Comprovante compatível").length;
-        const pending = eventRows.length - paid - review;
-        const ride = eventRows.filter((item) => item.needsRide === "Sim").length;
-        const seats = eventRows.reduce((total, item) => total + Number(item.seats || 0), 0);
-        const available = Math.max(event.capacity - eventRows.length, 0);
+      if (!EVENTS.some((event) => event.key === activeAdminEventKey)) {
+        activeAdminEventKey = EVENTS[0]?.key || "";
+      }
+      const selectedEvent = getEvent(activeAdminEventKey);
+      renderAdminEventManager();
 
-        return `
-          <section class="event-admin event-admin__section">
-            <div class="event-admin__head">
-              <h3>${escapeHtml(event.name)}</h3>
-              <span class="tag">${event.paid ? "Evento pago" : "Evento gratuito"}</span>
-              <span>${escapeHtml(event.description)}</span>
-              <span>${escapeHtml(eventTimeText(event))}</span>
-              <span>Endereço: <a class="map-link" href="${escapeHtml(event.mapsUrl)}" target="_blank" rel="noopener">${escapeHtml(event.address || "A confirmar")}</a></span>
-            </div>
-            <div class="event-admin__metrics">
-              <div class="event-admin__metric"><strong>${eventRows.length}</strong><span>Inscrições</span></div>
-              <div class="event-admin__metric"><strong>${paid}</strong><span>Pagos/aprovados</span></div>
-              <div class="event-admin__metric"><strong>${pending}</strong><span>Pendentes</span></div>
-              <div class="event-admin__metric"><strong>${ride}</strong><span>Precisam carona</span></div>
-              <div class="event-admin__metric"><strong>${seats}</strong><span>Vagas ofertadas</span></div>
-            </div>
-            <div class="event-admin__vacancies">
-              <span>Vagas totais: <strong>${event.capacity}</strong></span>
-              <span>Inscrições realizadas: <strong>${eventRows.length}</strong></span>
-              <span>Vagas disponíveis: <strong>${available}</strong></span>
-            </div>
-            ${renderAdminTable(eventRows)}
-          </section>
-        `;
+      $("#adminEventTabs").innerHTML = EVENTS.map((event) => {
+        const total = eventCount(event.key);
+        return `<button class="admin-event-tab" type="button" data-admin-event="${escapeHtml(event.key)}" role="tab" aria-selected="${event.key === activeAdminEventKey ? "true" : "false"}">${escapeHtml(event.name)} (${total})</button>`;
       }).join("");
 
-      $("#adminTable").innerHTML = sections;
+      if (!selectedEvent) {
+        $("#adminTable").innerHTML = `<div class="empty">Nenhum evento cadastrado.</div>`;
+        return;
+      }
+
+      const eventRows = records.filter((record) => getRecordEventKey(record) === selectedEvent.key);
+      const paid = eventRows.filter((item) => item.paymentStatus === "Pago").length;
+      const review = eventRows.filter((item) => item.paymentStatus === "Em análise" || item.paymentStatus === "Comprovante compatível").length;
+      const pending = eventRows.length - paid - review;
+      const ride = eventRows.filter((item) => item.needsRide === "Sim").length;
+      const seats = eventRows.reduce((total, item) => total + Number(item.seats || 0), 0);
+      const available = Math.max(selectedEvent.capacity - eventRows.length, 0);
+
+      $("#adminTable").innerHTML = `
+        <section class="event-admin event-admin__section">
+          <div class="event-admin__head">
+            <h3>${escapeHtml(selectedEvent.name)}</h3>
+            <span class="tag">${selectedEvent.paid ? "Evento pago" : "Evento gratuito"}</span>
+            <span>${escapeHtml(selectedEvent.description)}</span>
+            <span>${escapeHtml(eventTimeText(selectedEvent))}</span>
+            <span>Voltado para: ${escapeHtml(selectedEvent.audience || "Toda a igreja")}</span>
+            <span>Endereço: <a class="map-link" href="${escapeHtml(selectedEvent.mapsUrl)}" target="_blank" rel="noopener">${escapeHtml(selectedEvent.address || "A confirmar")}</a></span>
+          </div>
+          <div class="event-admin__metrics">
+            <div class="event-admin__metric"><strong>${eventRows.length}</strong><span>Inscrições</span></div>
+            <div class="event-admin__metric"><strong>${paid}</strong><span>Pagos/aprovados</span></div>
+            <div class="event-admin__metric"><strong>${pending}</strong><span>Pendentes</span></div>
+            <div class="event-admin__metric"><strong>${ride}</strong><span>Precisam carona</span></div>
+            <div class="event-admin__metric"><strong>${seats}</strong><span>Vagas ofertadas</span></div>
+          </div>
+          <div class="event-admin__vacancies">
+            <span>Vagas totais: <strong>${selectedEvent.capacity}</strong></span>
+            <span>Inscrições realizadas: <strong>${eventRows.length}</strong></span>
+            <span>Vagas disponíveis: <strong>${available}</strong></span>
+          </div>
+          ${renderAdminTable(eventRows)}
+        </section>
+      `;
     }
 
     function exportCsv() {
@@ -2248,6 +2523,55 @@
       saveRecords(records);
     });
 
+    $("#adminEventTabs").addEventListener("click", (event) => {
+      const button = event.target.closest("[data-admin-event]");
+      if (!button) return;
+      activeAdminEventKey = button.dataset.adminEvent;
+      renderAdmin();
+    });
+
+    $("#adminEventList").addEventListener("click", async (event) => {
+      const button = event.target.closest("[data-action='delete-event']");
+      if (!button || button.disabled) return;
+      const eventKey = button.dataset.event;
+      const item = getEvent(eventKey);
+      if (!item || eventCount(eventKey) > 0) return;
+      if (!confirm(`Excluir o evento "${item.name}"?`)) return;
+      EVENTS.splice(EVENTS.findIndex((eventItem) => eventItem.key === eventKey), 1);
+      activeAdminEventKey = EVENTS[0]?.key || "";
+      saveEventsLocal();
+      await deleteEventFromSupabase(eventKey);
+      renderEventCards();
+      renderAdmin();
+    });
+
+    $("#adminEventForm").addEventListener("submit", async (event) => {
+      event.preventDefault();
+      const data = Object.fromEntries(new FormData(event.target).entries());
+      const baseKey = slugify(data.name);
+      let key = baseKey;
+      let suffix = 2;
+      while (EVENTS.some((eventItem) => eventItem.key === key)) {
+        key = `${baseKey}-${suffix}`;
+        suffix += 1;
+      }
+      const newEvent = normalizeEvent({
+        ...data,
+        key,
+        paid: data.paid === "true",
+        mapsUrl: data.mapsUrl || `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(data.address || data.name)}`
+      });
+      EVENTS.push(newEvent);
+      activeAdminEventKey = newEvent.key;
+      saveEventsLocal();
+      const result = await syncEventsToSupabase([newEvent]);
+      showMessage($("#adminEventMessage"), "Evento criado.", result.ok ? "O evento já está disponível na página inicial." : "O evento foi salvo neste navegador. Rode o SQL de eventos no Supabase para salvar para todos os acessos.");
+      event.target.reset();
+      $("#eventCapacityInput").value = "450";
+      renderEventCards();
+      renderAdmin();
+    });
+
     $("#exportCsv").addEventListener("click", exportCsv);
 
     $("#importPaymentsButton").addEventListener("click", () => $("#paymentImport").click());
@@ -2337,6 +2661,7 @@
     });
 
     (async () => {
+      await loadEventsFromSupabase();
       await loadRecordsFromSupabase();
       renderEventCards();
       if (await applyValidationFromUrl()) return;
