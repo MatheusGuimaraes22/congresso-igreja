@@ -597,14 +597,28 @@
     }
 
     .admin-event-row {
-      display: grid;
-      grid-template-columns: 1fr auto;
+      display: flex;
+      flex-wrap: wrap;
       gap: 10px;
       align-items: center;
+      justify-content: space-between;
       padding: 10px;
       border: 1px solid var(--line);
       border-radius: 8px;
       background: var(--paper-2);
+    }
+
+    .admin-event-row strong {
+      margin-right: auto;
+    }
+
+    .admin-event-row .mini {
+      min-height: 34px;
+      padding: 0 12px;
+    }
+
+    .is-hidden {
+      display: none !important;
     }
 
     .admin-login {
@@ -1044,33 +1058,57 @@
             <strong>Painel administrativo liberado.</strong>
             <p>Use este painel para acompanhar inscritos, pagamentos, caronas, vagas oferecidas e comprovantes.</p>
           </div>
-          <form id="adminCredentialsForm" class="admin-login">
+          <div class="admin-login">
             <fieldset>
-              <legend>Alterar acesso administrativo</legend>
+              <legend>Adicionar usuários</legend>
+              <form id="adminAddUserForm">
+                <div class="grid">
+                  <div class="field">
+                    <label for="addAdminUserName">Nome do novo usuário *</label>
+                    <input id="addAdminUserName" name="adminUser" autocomplete="username" required>
+                  </div>
+                  <div class="field">
+                    <label for="addAdminPassword">Senha do novo usuário *</label>
+                    <input id="addAdminPassword" name="adminPassword" type="password" autocomplete="new-password" minlength="4" required>
+                  </div>
+                  <div class="field">
+                    <label for="addAdminPasswordConfirm">Confirmação de senha *</label>
+                    <input id="addAdminPasswordConfirm" name="adminPasswordConfirm" type="password" autocomplete="new-password" minlength="4" required>
+                  </div>
+                </div>
+                <div class="actions">
+                  <button class="btn btn--ghost" type="submit">Adicionar usuário</button>
+                </div>
+              </form>
+            </fieldset>
+            <fieldset>
+              <legend>Trocar senha de usuário existente</legend>
+              <form id="adminPasswordChangeForm">
               <div class="grid">
                 <div class="field">
-                  <label for="currentAdminPassword">Senha atual *</label>
-                  <input id="currentAdminPassword" name="currentAdminPassword" type="password" autocomplete="current-password" required>
+                  <label for="changeAdminUser">Usuário existente *</label>
+                  <input id="changeAdminUser" name="adminUser" autocomplete="username" required>
                 </div>
                 <div class="field">
-                  <label for="newAdminUser">Novo usuário *</label>
-                  <input id="newAdminUser" name="newAdminUser" autocomplete="username" required>
+                  <label for="changeCurrentPassword">Senha atual *</label>
+                  <input id="changeCurrentPassword" name="currentPassword" type="password" autocomplete="current-password" required>
                 </div>
                 <div class="field">
-                  <label for="newAdminPassword">Nova senha *</label>
-                  <input id="newAdminPassword" name="newAdminPassword" type="password" autocomplete="new-password" minlength="4" required>
+                  <label for="changeNewPassword">Nova senha *</label>
+                  <input id="changeNewPassword" name="newPassword" type="password" autocomplete="new-password" minlength="4" required>
                 </div>
                 <div class="field">
-                  <label for="confirmAdminPassword">Confirmar nova senha *</label>
-                  <input id="confirmAdminPassword" name="confirmAdminPassword" type="password" autocomplete="new-password" minlength="4" required>
+                  <label for="changeNewPasswordConfirm">Confirmação de nova senha *</label>
+                  <input id="changeNewPasswordConfirm" name="newPasswordConfirm" type="password" autocomplete="new-password" minlength="4" required>
                 </div>
               </div>
+                <div class="actions">
+                  <button class="btn btn--ghost" type="submit">Trocar senha</button>
+                </div>
+              </form>
             </fieldset>
-            <div class="actions">
-              <button class="btn btn--ghost" type="submit">Salvar novo acesso</button>
-            </div>
             <div class="success" id="adminCredentialsMessage" role="status" aria-live="polite"></div>
-          </form>
+          </div>
           <div class="admin-toolbar">
             <div class="actions">
               <button class="btn btn--ghost" type="button" id="exportCsv">Exportar inscritos</button>
@@ -1083,11 +1121,20 @@
 
           <div class="admin-event-manager">
             <h3>Gerenciar eventos</h3>
-            <form id="adminEventForm">
+            <div class="admin-event-list" id="adminEventList"></div>
+            <div class="actions">
+              <button class="btn btn--ghost" type="button" id="newEventButton">Novo evento</button>
+            </div>
+            <form id="adminEventForm" class="is-hidden">
               <div class="grid">
+                <input id="eventKeyInput" name="key" type="hidden">
                 <div class="field">
                   <label for="eventNameInput">Nome do evento *</label>
                   <input id="eventNameInput" name="name" required>
+                </div>
+                <div class="field">
+                  <label for="eventDateInput">Data do evento *</label>
+                  <input id="eventDateInput" name="date" type="date" required>
                 </div>
                 <div class="field">
                   <label for="eventPaidInput">Tipo de inscrição *</label>
@@ -1127,10 +1174,10 @@
               </div>
               <div class="actions">
                 <button class="btn btn--primary" type="submit">Criar evento</button>
+                <button class="btn btn--ghost" type="button" id="cancelEventForm">Cancelar</button>
               </div>
               <div class="success" id="adminEventMessage" role="status" aria-live="polite"></div>
             </form>
-            <div class="admin-event-list" id="adminEventList"></div>
           </div>
 
           <div class="admin-event-tabs" id="adminEventTabs" role="tablist" aria-label="Eventos cadastrados"></div>
@@ -1152,6 +1199,7 @@
       supabaseAnonKey: "sb_publishable__7eNcEjFykry9wBXn8tpzA_evGhJd9_",
       supabaseTable: "congresso_inscricoes",
       supabaseAdminTable: "admin_config",
+      supabaseAdminUsersTable: "admin_users",
       supabaseEventsTable: "eventos_config",
       supabaseProofBucket: "comprovantes",
       adminEmail: "administracao@igreja.com",
@@ -1165,6 +1213,7 @@
     const DEFAULT_EVENT_PLACE = {
       address: "Igreja Reformada Comunidade da Cruz",
       mapsUrl: "https://www.google.com/maps/search/?api=1&query=Igreja%20Reformada%20Comunidade%20da%20Cruz",
+      date: "",
       startsAt: "A confirmar",
       endsAt: "A confirmar"
     };
@@ -1244,6 +1293,7 @@
         description: String(event.description || "").trim(),
         address,
         mapsUrl: String(event.mapsUrl || `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(address)}`).trim(),
+        date: String(event.date || "").trim(),
         startsAt: String(event.startsAt || "A confirmar").trim(),
         endsAt: String(event.endsAt || "A confirmar").trim()
       };
@@ -1279,6 +1329,7 @@
         description: normalized.description,
         address: normalized.address,
         maps_url: normalized.mapsUrl,
+        event_date: normalized.date || null,
         starts_at: normalized.startsAt,
         ends_at: normalized.endsAt,
         active: true,
@@ -1297,6 +1348,7 @@
         description: row.description,
         address: row.address,
         mapsUrl: row.maps_url,
+        date: row.event_date,
         startsAt: row.starts_at,
         endsAt: row.ends_at
       });
@@ -1520,6 +1572,39 @@
       return { ok: true };
     }
 
+    async function getAdminUsers() {
+      const fallbackConfig = await getAdminConfig();
+      const fallback = [{ adminUser: fallbackConfig.adminUser, passwordHash: fallbackConfig.adminPasswordHash }];
+      const client = getSupabaseClient();
+      if (!client || !CONFIG.supabaseAdminUsersTable) return fallback;
+
+      const { data, error } = await client
+        .from(CONFIG.supabaseAdminUsersTable)
+        .select("admin_user,password_hash")
+        .eq("active", true);
+
+      if (error || !data || !data.length) {
+        if (error) console.warn("Falha ao carregar usuários admin:", error.message);
+        return fallback;
+      }
+      return data.map((item) => ({ adminUser: item.admin_user, passwordHash: item.password_hash }));
+    }
+
+    async function saveAdminUser(adminUser, passwordHash) {
+      const client = getSupabaseClient();
+      if (!client || !CONFIG.supabaseAdminUsersTable) return { ok: false, error: "Tabela admin_users não configurada no Supabase." };
+      const { error } = await client
+        .from(CONFIG.supabaseAdminUsersTable)
+        .upsert({
+          admin_user: adminUser,
+          password_hash: passwordHash,
+          active: true,
+          updated_at: new Date().toISOString()
+        }, { onConflict: "admin_user" });
+      if (error) return { ok: false, error: error.message };
+      return { ok: true };
+    }
+
     function onlyDigits(value) {
       return String(value || "").replace(/\D/g, "");
     }
@@ -1625,7 +1710,8 @@
     }
 
     function eventTimeText(event) {
-      return `Início: ${event.startsAt || "A confirmar"} | Término: ${event.endsAt || "A confirmar"}`;
+      const date = event.date ? new Date(`${event.date}T12:00:00`).toLocaleDateString("pt-BR") : "Data a confirmar";
+      return `Data: ${date} | Início: ${event.startsAt || "A confirmar"} | Término: ${event.endsAt || "A confirmar"}`;
     }
 
     function eventDetailsHtml(event) {
@@ -1818,6 +1904,56 @@
       return `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(buildAddress(record))}`;
     }
 
+    function calendarDateTime(date, time, fallbackHour) {
+      const cleanDate = date || new Date().toISOString().slice(0, 10);
+      const digits = String(time || "").match(/(\d{1,2})(?::|h)?(\d{2})?/);
+      const hour = digits ? Number(digits[1]) : fallbackHour;
+      const minute = digits && digits[2] ? Number(digits[2]) : 0;
+      return new Date(`${cleanDate}T${String(hour).padStart(2, "0")}:${String(minute).padStart(2, "0")}:00`);
+    }
+
+    function calendarStamp(date) {
+      return date.toISOString().replace(/[-:]/g, "").replace(/\.\d{3}Z$/, "Z");
+    }
+
+    function makeGoogleCalendarLink(record) {
+      const start = calendarDateTime(record.eventDate, record.eventStartsAt, 19);
+      const end = calendarDateTime(record.eventDate, record.eventEndsAt, 21);
+      const url = new URL("https://calendar.google.com/calendar/render");
+      url.searchParams.set("action", "TEMPLATE");
+      url.searchParams.set("text", record.eventName || "Evento ICC");
+      url.searchParams.set("dates", `${calendarStamp(start)}/${calendarStamp(end)}`);
+      url.searchParams.set("details", `Inscrição: ${record.id}\nQR Code: ${record.validationLink || makeValidationLink(record)}\n${record.eventDescription || ""}`);
+      url.searchParams.set("location", record.eventAddress || "");
+      return url.toString();
+    }
+
+    function downloadIcs(record) {
+      const start = calendarDateTime(record.eventDate, record.eventStartsAt, 19);
+      const end = calendarDateTime(record.eventDate, record.eventEndsAt, 21);
+      const ics = [
+        "BEGIN:VCALENDAR",
+        "VERSION:2.0",
+        "PRODID:-//ICC//Eventos//PT-BR",
+        "BEGIN:VEVENT",
+        `UID:${record.id}@eventosicc.com`,
+        `DTSTAMP:${calendarStamp(new Date())}`,
+        `DTSTART:${calendarStamp(start)}`,
+        `DTEND:${calendarStamp(end)}`,
+        `SUMMARY:${record.eventName || "Evento ICC"}`,
+        `DESCRIPTION:Inscrição ${record.id}. QR Code: ${record.validationLink || makeValidationLink(record)}`,
+        `LOCATION:${record.eventAddress || ""}`,
+        "END:VEVENT",
+        "END:VCALENDAR"
+      ].join("\r\n");
+      const blob = new Blob([ics], { type: "text/calendar;charset=utf-8" });
+      const link = document.createElement("a");
+      link.href = URL.createObjectURL(blob);
+      link.download = `${record.id}.ics`;
+      link.click();
+      URL.revokeObjectURL(link.href);
+    }
+
     function mailtoFor(record, type) {
       if (type === "admin") {
         const subject = `Nova inscrição - ${record.fullName}`;
@@ -1830,8 +1966,8 @@
         ? `Pagamento confirmado - ${CONFIG.churchName}`
         : `Inscrição recebida - ${CONFIG.churchName}`;
       const body = isPaid
-        ? `Olá, ${record.fullName}.\n\nRecebemos a confirmação do seu pagamento para ${record.eventName || CONFIG.churchName}.\n\nHorário: ${record.eventTime || "A confirmar"}\nVoltado para: ${record.eventAudience || "Toda a igreja"}\nLocal: ${record.eventAddress || "A confirmar"}\nMaps: ${record.eventMapsUrl || ""}\n\nSeu código de inscrição: ${record.id}\n\nNos vemos no evento.`
-        : `Olá, ${record.fullName}.\n\nSua inscrição em ${record.eventName || CONFIG.churchName} foi recebida.\n\n${record.eventDescription || ""}\nHorário: ${record.eventTime || "A confirmar"}\nVoltado para: ${record.eventAudience || "Toda a igreja"}\nLocal: ${record.eventAddress || "A confirmar"}\nMaps: ${record.eventMapsUrl || ""}\n\nCódigo de inscrição: ${record.id}\nForma de pagamento: ${record.paymentMethod || "Não informada"}\nReferência de pagamento: ${record.paymentReference}\nQR Code/validação: ${record.validationLink || makeValidationLink(record)}\n\nGuarde o QR Code para apresentar à organização.`;
+        ? `Olá, ${record.fullName}.\n\nRecebemos a confirmação do seu pagamento para ${record.eventName || CONFIG.churchName}.\n\nHorário: ${record.eventTime || "A confirmar"}\nVoltado para: ${record.eventAudience || "Toda a igreja"}\nLocal: ${record.eventAddress || "A confirmar"}\nMaps: ${record.eventMapsUrl || ""}\nAgenda Google: ${makeGoogleCalendarLink(record)}\n\nSeu código de inscrição: ${record.id}\n\nNos vemos no evento.`
+        : `Olá, ${record.fullName}.\n\nSua inscrição em ${record.eventName || CONFIG.churchName} foi recebida.\n\n${record.eventDescription || ""}\nHorário: ${record.eventTime || "A confirmar"}\nVoltado para: ${record.eventAudience || "Toda a igreja"}\nLocal: ${record.eventAddress || "A confirmar"}\nMaps: ${record.eventMapsUrl || ""}\nAgenda Google: ${makeGoogleCalendarLink(record)}\n\nCódigo de inscrição: ${record.id}\nForma de pagamento: ${record.paymentMethod || "Não informada"}\nReferência de pagamento: ${record.paymentReference}\nQR Code/validação: ${record.validationLink || makeValidationLink(record)}\n\nGuarde o QR Code para apresentar à organização.`;
 
       return `mailto:${encodeURIComponent(record.email)}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
     }
@@ -1896,6 +2032,7 @@
       record.eventAddress = event ? event.address : "";
       record.eventMapsUrl = event ? event.mapsUrl : "";
       record.eventAudience = event ? event.audience : "";
+      record.eventDate = event ? event.date : "";
       record.eventStartsAt = event ? event.startsAt : "";
       record.eventEndsAt = event ? event.endsAt : "";
       record.eventTime = event ? eventTimeText(event) : "A confirmar";
@@ -1942,6 +2079,8 @@
             <p>
               <a class="btn btn--ghost" href="${mailtoFor(record, "registration")}">Preparar e-mail de inscrição</a>
               ${record.phone ? `<a class="btn btn--ghost" href="${makeWhatsAppLink(record)}" target="_blank" rel="noopener">Enviar WhatsApp</a>` : ""}
+              <a class="btn btn--ghost" href="${makeGoogleCalendarLink(record)}" target="_blank" rel="noopener">Adicionar à Google Agenda</a>
+              <button class="btn btn--ghost" type="button" data-action="download-ics" data-id="${record.id}">Baixar convite .ics</button>
               <a class="btn btn--ghost" href="${mailtoFor(record, "admin")}">Avisar administração</a>
               ${record.paymentStatus === "Pago" ? `<a class="btn btn--ghost" href="${mailtoFor(record, "paid")}">Preparar e-mail de pagamento</a>` : ""}
             </p>
@@ -2080,13 +2219,40 @@
         const total = eventCount(event.key);
         return `
           <div class="admin-event-row">
-            <div>
-              <strong>${escapeHtml(event.name)}</strong>
-            </div>
+            <strong>${escapeHtml(event.name)}</strong>
+            <button class="mini" type="button" data-action="edit-event" data-event="${escapeHtml(event.key)}">Editar</button>
             <button class="mini" type="button" data-action="delete-event" data-event="${escapeHtml(event.key)}" ${total ? "disabled" : ""}>${total ? "Há inscrições" : "Excluir"}</button>
           </div>
         `;
       }).join("");
+    }
+
+    function openEventForm(eventKey = "") {
+      const form = $("#adminEventForm");
+      const event = eventKey ? getEvent(eventKey) : null;
+      form.classList.remove("is-hidden");
+      $("#eventKeyInput").value = event ? event.key : "";
+      $("#eventNameInput").value = event ? event.name : "";
+      $("#eventDateInput").value = event ? event.date || "" : "";
+      $("#eventPaidInput").value = event && event.paid ? "true" : "false";
+      $("#eventCapacityInput").value = event ? event.capacity : "450";
+      $("#eventStartsInput").value = event ? event.startsAt : "";
+      $("#eventEndsInput").value = event ? event.endsAt : "";
+      $("#eventAudienceInput").value = event ? event.audience : "";
+      $("#eventAddressInput").value = event ? event.address : "";
+      $("#eventMapsInput").value = event ? event.mapsUrl : "";
+      $("#eventDescriptionInput").value = event ? event.description : "";
+      form.querySelector("button[type='submit']").textContent = event ? "Salvar evento" : "Criar evento";
+      form.scrollIntoView({ behavior: "smooth", block: "center" });
+    }
+
+    function closeEventForm() {
+      const form = $("#adminEventForm");
+      form.reset();
+      $("#eventKeyInput").value = "";
+      $("#eventCapacityInput").value = "450";
+      form.querySelector("button[type='submit']").textContent = "Criar evento";
+      form.classList.add("is-hidden");
     }
 
     function renderAdmin() {
@@ -2456,7 +2622,7 @@
         return;
       }
 
-      proofSuccessBox.innerHTML = `<strong>Lendo comprovante.</strong><p>O OCR está tentando localizar inscrição/referência, valor e ID/autenticação no arquivo enviado.</p>`;
+      proofSuccessBox.innerHTML = `<strong>Verificando comprovante.</strong><p>A varredura por OCR está procurando inscrição/referência, valor e ID/autenticação no arquivo enviado.</p>`;
       const proofFile = $("#latePaymentProof").files[0];
       records[index].paymentProof = await readProofFile(proofFile);
       const uploadedProof = await uploadProofToSupabase(proofFile, records[index]);
@@ -2496,7 +2662,7 @@
         records[index].integrationStatus = "Comprovante salvo no Supabase";
       }
       saveRecords(records);
-      proofSuccessBox.innerHTML = `<strong>Comprovante recebido.</strong><p>Status: <strong>${records[index].paymentStatus}</strong>. OCR: ${escapeHtml(records[index].proofOcrMatches)}. A administração ainda deve conferir antes de marcar como pago.</p>`;
+      proofSuccessBox.innerHTML = `<strong>Comprovante recebido.</strong><p>Status: <strong>${records[index].paymentStatus}</strong>. Varredura: ${escapeHtml(records[index].proofOcrMatches)}. A administração ainda deve conferir antes de marcar como pago.</p>`;
       proofForm.reset();
     });
 
@@ -2522,6 +2688,13 @@
       saveRecords(records);
     });
 
+    successBox.addEventListener("click", (event) => {
+      const button = event.target.closest("[data-action='download-ics']");
+      if (!button) return;
+      const record = getRecords().find((item) => item.id === button.dataset.id);
+      if (record) downloadIcs(record);
+    });
+
     $("#adminEventTabs").addEventListener("click", (event) => {
       const button = event.target.closest("[data-admin-event]");
       if (!button) return;
@@ -2530,6 +2703,11 @@
     });
 
     $("#adminEventList").addEventListener("click", async (event) => {
+      const editButton = event.target.closest("[data-action='edit-event']");
+      if (editButton) {
+        openEventForm(editButton.dataset.event);
+        return;
+      }
       const button = event.target.closest("[data-action='delete-event']");
       if (!button || button.disabled) return;
       const eventKey = button.dataset.event;
@@ -2544,13 +2722,17 @@
       renderAdmin();
     });
 
+    $("#newEventButton").addEventListener("click", () => openEventForm());
+    $("#cancelEventForm").addEventListener("click", closeEventForm);
+
     $("#adminEventForm").addEventListener("submit", async (event) => {
       event.preventDefault();
       const data = Object.fromEntries(new FormData(event.target).entries());
-      const baseKey = slugify(data.name);
+      const existingKey = data.key || "";
+      const baseKey = existingKey || slugify(data.name);
       let key = baseKey;
       let suffix = 2;
-      while (EVENTS.some((eventItem) => eventItem.key === key)) {
+      while (EVENTS.some((eventItem) => eventItem.key === key && eventItem.key !== existingKey)) {
         key = `${baseKey}-${suffix}`;
         suffix += 1;
       }
@@ -2560,13 +2742,14 @@
         paid: data.paid === "true",
         mapsUrl: data.mapsUrl || `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(data.address || data.name)}`
       });
-      EVENTS.push(newEvent);
+      const existingIndex = EVENTS.findIndex((eventItem) => eventItem.key === key);
+      if (existingIndex >= 0) EVENTS[existingIndex] = newEvent;
+      else EVENTS.push(newEvent);
       activeAdminEventKey = newEvent.key;
       saveEventsLocal();
       const result = await syncEventsToSupabase([newEvent]);
-      showMessage($("#adminEventMessage"), "Evento criado.", result.ok ? "O evento já está disponível na página inicial." : "O evento foi salvo neste navegador. Rode o SQL de eventos no Supabase para salvar para todos os acessos.");
-      event.target.reset();
-      $("#eventCapacityInput").value = "450";
+      showMessage($("#adminEventMessage"), existingIndex >= 0 ? "Evento atualizado." : "Evento criado.", result.ok ? "O evento já está disponível na página inicial." : "O evento foi salvo neste navegador. Rode o SQL de eventos no Supabase para salvar para todos os acessos.");
+      closeEventForm();
       renderEventCards();
       renderAdmin();
     });
@@ -2594,14 +2777,12 @@
       event.preventDefault();
       const user = $("#adminUser").value.trim().toLowerCase();
       const password = $("#adminPassword").value.trim();
-      const adminConfig = await getAdminConfig();
-      const expectedUsers = [adminConfig.adminUser, CONFIG.adminEmail]
-        .map((value) => String(value || "").trim().toLowerCase())
-        .filter(Boolean);
+      const adminUsers = await getAdminUsers();
       const passwordHash = await sha256Hex(password);
       const message = $("#adminLoginMessage");
+      const matchedUser = adminUsers.find((item) => String(item.adminUser || "").trim().toLowerCase() === user && item.passwordHash === passwordHash);
 
-      if (expectedUsers.includes(user) && passwordHash === adminConfig.adminPasswordHash) {
+      if (matchedUser || (user === String(CONFIG.adminEmail).toLowerCase() && passwordHash === (await getAdminConfig()).adminPasswordHash)) {
         message.classList.remove("is-visible");
         setAdminAuthenticated(true);
         event.target.reset();
@@ -2613,34 +2794,56 @@
       message.innerHTML = `<strong>Acesso negado.</strong><p>Usuário ou senha incorretos.</p>`;
     });
 
-    $("#adminCredentialsForm").addEventListener("submit", async (event) => {
+    $("#adminAddUserForm").addEventListener("submit", async (event) => {
       event.preventDefault();
       const message = $("#adminCredentialsMessage");
-      const currentPassword = $("#currentAdminPassword").value.trim();
-      const newUser = $("#newAdminUser").value.trim();
-      const newPassword = $("#newAdminPassword").value.trim();
-      const confirmPassword = $("#confirmAdminPassword").value.trim();
+      const newUser = $("#addAdminUserName").value.trim();
+      const newPassword = $("#addAdminPassword").value.trim();
+      const confirmPassword = $("#addAdminPasswordConfirm").value.trim();
+
+      if (newPassword !== confirmPassword) {
+        showMessage(message, "Senhas diferentes.", "A senha e a confirmação precisam ser iguais.");
+        return;
+      }
+
+      const result = await saveAdminUser(newUser, await sha256Hex(newPassword));
+      if (!result.ok) {
+        showMessage(message, "Não foi possível adicionar.", result.error || "Rode o SQL de usuários administrativos no Supabase.");
+        return;
+      }
+
+      showMessage(message, "Usuário adicionado.", "O novo usuário já pode acessar a administração.");
+      event.target.reset();
+    });
+
+    $("#adminPasswordChangeForm").addEventListener("submit", async (event) => {
+      event.preventDefault();
+      const message = $("#adminCredentialsMessage");
+      const user = $("#changeAdminUser").value.trim();
+      const currentPassword = $("#changeCurrentPassword").value.trim();
+      const newPassword = $("#changeNewPassword").value.trim();
+      const confirmPassword = $("#changeNewPasswordConfirm").value.trim();
 
       if (newPassword !== confirmPassword) {
         showMessage(message, "Senhas diferentes.", "A nova senha e a confirmação precisam ser iguais.");
         return;
       }
 
-      const adminConfig = await getAdminConfig();
+      const adminUsers = await getAdminUsers();
       const currentHash = await sha256Hex(currentPassword);
-      if (currentHash !== adminConfig.adminPasswordHash) {
-        showMessage(message, "Senha atual incorreta.", "Informe a senha atual para alterar o acesso administrativo.");
+      const existingUser = adminUsers.find((item) => String(item.adminUser || "").trim().toLowerCase() === user.toLowerCase());
+      if (!existingUser || existingUser.passwordHash !== currentHash) {
+        showMessage(message, "Senha atual incorreta.", "Informe o usuário existente e a senha atual correta.");
         return;
       }
 
-      const newHash = await sha256Hex(newPassword);
-      const result = await saveAdminConfig(newUser, newHash);
+      const result = await saveAdminUser(existingUser.adminUser, await sha256Hex(newPassword));
       if (!result.ok) {
         showMessage(message, "Não foi possível salvar.", result.error || "Verifique a configuração do Supabase.");
         return;
       }
 
-      showMessage(message, "Acesso atualizado.", "O novo usuário e senha passam a valer para qualquer dispositivo.");
+      showMessage(message, "Senha atualizada.", "A nova senha passa a valer para esse usuário.");
       event.target.reset();
     });
 

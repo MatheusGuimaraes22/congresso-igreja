@@ -9,11 +9,15 @@ create table if not exists public.eventos_config (
   description text,
   address text,
   maps_url text,
+  event_date date,
   starts_at text,
   ends_at text,
   active boolean not null default true,
   data jsonb not null default '{}'::jsonb
 );
+
+alter table public.eventos_config
+add column if not exists event_date date;
 
 create or replace function public.set_updated_at()
 returns trigger
