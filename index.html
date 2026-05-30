@@ -1137,16 +1137,6 @@
             </fieldset>
             <div class="success" id="adminCredentialsMessage" role="status" aria-live="polite"></div>
           </div>
-          <div class="admin-toolbar">
-            <div class="actions">
-              <button class="btn btn--ghost" type="button" id="exportCsv">Exportar inscritos</button>
-              <button class="btn btn--ghost" type="button" id="importPaymentsButton">Importar pagamentos</button>
-              <input id="paymentImport" type="file" accept=".csv,.txt" hidden>
-              <button class="btn btn--ghost" type="button" id="adminLogout">Sair</button>
-              <button class="btn btn--danger" type="button" id="clearAll">Apagar lista</button>
-            </div>
-          </div>
-
           <div class="admin-event-manager">
             <h3>Gerenciar eventos</h3>
             <div class="admin-event-list" id="adminEventList"></div>
@@ -1209,6 +1199,7 @@
           </div>
 
           <div class="admin-event-tabs" id="adminEventTabs" role="tablist" aria-label="Eventos cadastrados"></div>
+          <input id="paymentImport" type="file" accept=".csv,.txt" hidden>
           <div class="table-wrap" id="adminTable"></div>
         </div>
       </section>
@@ -1543,6 +1534,11 @@
       if (!client) return;
       const { error } = await client.from(CONFIG.supabaseTable).delete().not("id", "is", null);
       if (error) console.warn("Falha ao limpar Supabase:", error.message);
+    }
+
+    async function clearSupabaseEventRecords(eventKey) {
+      const records = getRecords().filter((record) => getRecordEventKey(record) === eventKey);
+      await Promise.all(records.map((record) => deleteRecordFromSupabase(record.id)));
     }
 
     async function sha256Hex(value) {
@@ -2381,13 +2377,22 @@
             <span>Vagas disponíveis: <strong>${available}</strong></span>
           </div>
           ${renderAdminTable(eventRows)}
+          <div class="admin-toolbar">
+            <div class="actions">
+              <button class="btn btn--ghost" type="button" data-admin-tool="export">Exportar lista do evento</button>
+              <button class="btn btn--ghost" type="button" data-admin-tool="import">Importar pagamentos do evento</button>
+              <button class="btn btn--ghost" type="button" data-admin-tool="logout">Sair</button>
+              <button class="btn btn--danger" type="button" data-admin-tool="clear">Apagar lista do evento</button>
+            </div>
+          </div>
         </section>
       `;
     }
 
-    function exportCsv() {
-      const records = getRecords();
+    function exportCsv(eventKey = activeAdminEventKey) {
+      const records = getRecords().filter((record) => getRecordEventKey(record) === eventKey);
       if (!records.length) return;
+      const event = getEvent(eventKey);
 
       const headers = [
         "id", "evento", "data", "nome", "email", "celular", "cpf", "igreja", "cep", "endereco",
@@ -2425,7 +2430,7 @@
       const blob = new Blob([csv], { type: "text/csv;charset=utf-8" });
       const link = document.createElement("a");
       link.href = URL.createObjectURL(blob);
-      link.download = "inscrições-congresso-igreja.csv";
+      link.download = `inscricoes-${slugify(event ? event.name : "evento")}.csv`;
       link.click();
       URL.revokeObjectURL(link.href);
     }
@@ -2434,12 +2439,13 @@
       return String(text || "").toLowerCase().replace(/[^\w@.-]+/g, " ");
     }
 
-    function autoConfirmPayments(paymentText, sourceLabel) {
+    function autoConfirmPayments(paymentText, sourceLabel, eventKey = activeAdminEventKey) {
       const normalized = normalizePaymentText(paymentText);
       const records = getRecords();
       let confirmed = 0;
 
       records.forEach((record) => {
+        if (getRecordEventKey(record) !== eventKey) return;
         if (record.paymentStatus === "Pago") return;
         const identifiers = [
           record.id,
@@ -2745,6 +2751,29 @@
     });
 
     $("#adminTable").addEventListener("click", (event) => {
+      const toolButton = event.target.closest("[data-admin-tool]");
+      if (toolButton) {
+        if (toolButton.dataset.adminTool === "export") {
+          exportCsv(activeAdminEventKey);
+        }
+        if (toolButton.dataset.adminTool === "import") {
+          $("#paymentImport").click();
+        }
+        if (toolButton.dataset.adminTool === "logout") {
+          setAdminAuthenticated(false);
+        }
+        if (toolButton.dataset.adminTool === "clear") {
+          const selectedEvent = getEvent(activeAdminEventKey);
+          if (confirm(`Apagar todas as inscrições de ${selectedEvent ? selectedEvent.name : "este evento"}?`)) {
+            const remainingRecords = getRecords().filter((record) => getRecordEventKey(record) !== activeAdminEventKey);
+            clearSupabaseEventRecords(activeAdminEventKey);
+            saveRecords(remainingRecords);
+            renderEventCards();
+          }
+        }
+        return;
+      }
+
       const actionButton = event.target.closest("[data-action]");
       if (!actionButton) return;
 
@@ -2844,23 +2873,12 @@
       $("#adminPasswordChangePanel").scrollIntoView({ behavior: "smooth", block: "center" });
     });
 
-    $("#exportCsv").addEventListener("click", exportCsv);
-
-    $("#importPaymentsButton").addEventListener("click", () => $("#paymentImport").click());
-
     $("#paymentImport").addEventListener("change", async (event) => {
       const file = event.target.files[0];
       if (!file) return;
       const text = await file.text();
-      autoConfirmPayments(text, `Importacao: ${file.name}`);
+      autoConfirmPayments(text, `Importacao: ${file.name}`, activeAdminEventKey);
       event.target.value = "";
-    });
-
-    $("#clearAll").addEventListener("click", () => {
-      if (confirm("Apagar todas as inscrições salvas neste navegador e no Supabase, se estiver configurado?")) {
-        saveRecords([]);
-        clearSupabaseRecords();
-      }
     });
 
     $("#adminLoginForm").addEventListener("submit", async (event) => {
@@ -2948,10 +2966,6 @@
       button.setAttribute("title", shouldShow ? "Ocultar senha" : "Mostrar senha");
       button.textContent = shouldShow ? "×" : "◉";
       input.focus();
-    });
-
-    $("#adminLogout").addEventListener("click", () => {
-      setAdminAuthenticated(false);
     });
 
     (async () => {
