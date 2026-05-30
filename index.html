@@ -704,11 +704,12 @@
 
     .event-admin__vacancies {
       display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+      grid-template-columns: repeat(3, minmax(150px, 220px));
       gap: 8px;
       padding: 0 16px 14px;
       color: var(--muted);
       font-weight: 700;
+      justify-content: start;
     }
 
     .event-admin__vacancies span {
@@ -719,6 +720,12 @@
       border: 1px solid var(--line);
       border-radius: 8px;
       background: #fffaf2;
+    }
+
+    @media (max-width: 760px) {
+      .event-admin__vacancies {
+        grid-template-columns: 1fr;
+      }
     }
 
     .table-wrap {
