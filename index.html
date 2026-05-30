@@ -1059,9 +1059,13 @@
             <p>Use este painel para acompanhar inscritos, pagamentos, caronas, vagas oferecidas e comprovantes.</p>
           </div>
           <div class="admin-login">
+            <div class="actions">
+              <button class="btn btn--ghost" type="button" id="newAdminUserButton">Novo usuário</button>
+              <button class="btn btn--ghost" type="button" id="changeAdminPasswordButton">Trocar senha</button>
+            </div>
             <fieldset>
               <legend>Adicionar usuários</legend>
-              <form id="adminAddUserForm">
+              <form id="adminAddUserForm" class="is-hidden">
                 <div class="grid">
                   <div class="field">
                     <label for="addAdminUserName">Nome do novo usuário *</label>
@@ -1083,7 +1087,7 @@
             </fieldset>
             <fieldset>
               <legend>Trocar senha de usuário existente</legend>
-              <form id="adminPasswordChangeForm">
+              <form id="adminPasswordChangeForm" class="is-hidden">
               <div class="grid">
                 <div class="field">
                   <label for="changeAdminUser">Usuário existente *</label>
@@ -2802,6 +2806,18 @@
       renderAdmin();
     });
 
+    $("#newAdminUserButton").addEventListener("click", () => {
+      $("#adminAddUserForm").classList.remove("is-hidden");
+      $("#adminPasswordChangeForm").classList.add("is-hidden");
+      $("#adminAddUserForm").scrollIntoView({ behavior: "smooth", block: "center" });
+    });
+
+    $("#changeAdminPasswordButton").addEventListener("click", () => {
+      $("#adminPasswordChangeForm").classList.remove("is-hidden");
+      $("#adminAddUserForm").classList.add("is-hidden");
+      $("#adminPasswordChangeForm").scrollIntoView({ behavior: "smooth", block: "center" });
+    });
+
     $("#exportCsv").addEventListener("click", exportCsv);
 
     $("#importPaymentsButton").addEventListener("click", () => $("#paymentImport").click());
@@ -2862,6 +2878,7 @@
 
       showMessage(message, "Usuário adicionado.", "O novo usuário já pode acessar a administração.");
       event.target.reset();
+      event.target.classList.add("is-hidden");
     });
 
     $("#adminPasswordChangeForm").addEventListener("submit", async (event) => {
@@ -2893,6 +2910,7 @@
 
       showMessage(message, "Senha atualizada.", "A nova senha passa a valer para esse usuário.");
       event.target.reset();
+      event.target.classList.add("is-hidden");
     });
 
     $("#toggleAdminPassword").addEventListener("click", () => {
