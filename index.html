@@ -2287,6 +2287,7 @@
         return `
           <div class="admin-event-row">
             <strong>${escapeHtml(event.name)}</strong>
+            <small>${escapeHtml(event.date ? new Date(`${event.date}T12:00:00`).toLocaleDateString("pt-BR") : "Data a confirmar")}</small>
             <div class="admin-event-row__actions">
               <button class="mini" type="button" data-action="edit-event" data-event="${escapeHtml(event.key)}">Editar</button>
               <button class="mini" type="button" data-action="delete-event" data-event="${escapeHtml(event.key)}" ${total ? "disabled" : ""}>${total ? "Há inscrições" : "Excluir"}</button>
