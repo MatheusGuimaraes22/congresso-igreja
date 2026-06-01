@@ -2675,9 +2675,9 @@
         }
 
         if (calendarResult.ok) {
-          integrationParts.push("convite enviado à Google Agenda");
+          integrationParts.push("agenda, e-mail e WhatsApp solicitados");
         } else if (!calendarResult.skipped) {
-          integrationParts.push(`falha no convite da agenda${calendarResult.status ? ` (${calendarResult.status})` : ""}`);
+          integrationParts.push(`falha na automação de agenda/mensagens${calendarResult.status ? ` (${calendarResult.status})` : ""}`);
         }
         record.integrationStatus = integrationParts.join("; ");
 
