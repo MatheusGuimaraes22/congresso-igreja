@@ -1208,7 +1208,6 @@
     </div>
   </main>
 
-  <script src="https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <script>
     const CONFIG = {
@@ -1279,6 +1278,43 @@
 
     const hasLocalStorage = storageAvailable("localStorage");
     const hasSessionStorage = storageAvailable("sessionStorage");
+    const TESSERACT_SRC = "https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js";
+    let tesseractLoadPromise = null;
+
+    function loadExternalScript(src) {
+      return new Promise((resolve, reject) => {
+        const existing = document.querySelector(`script[src="${src}"]`);
+        if (existing) {
+          if (existing.dataset.loaded === "true") {
+            resolve();
+            return;
+          }
+          existing.addEventListener("load", resolve, { once: true });
+          existing.addEventListener("error", reject, { once: true });
+          return;
+        }
+
+        const script = document.createElement("script");
+        script.src = src;
+        script.async = true;
+        script.onload = () => {
+          script.dataset.loaded = "true";
+          resolve();
+        };
+        script.onerror = () => reject(new Error(`Falha ao carregar ${src}`));
+        document.head.appendChild(script);
+      });
+    }
+
+    function ensureTesseractLoaded() {
+      if (window.Tesseract && typeof window.Tesseract.recognize === "function") {
+        return Promise.resolve();
+      }
+      if (!tesseractLoadPromise) {
+        tesseractLoadPromise = loadExternalScript(TESSERACT_SRC);
+      }
+      return tesseractLoadPromise;
+    }
 
     function supabaseEnabled() {
       return Boolean(CONFIG.supabaseUrl && CONFIG.supabaseAnonKey && window.supabase && window.supabase.createClient);
@@ -2181,6 +2217,11 @@
     async function analyzeProofWithOcr(file, record, proofAmount, proofTransactionId) {
       if (!file || !file.type.startsWith("image/")) {
         return { status: "OCR não aplicado", matches: "Arquivo não é imagem" };
+      }
+      try {
+        await ensureTesseractLoaded();
+      } catch (error) {
+        return { status: "OCR indisponível", matches: error.message || "Biblioteca de OCR não carregou" };
       }
       if (!window.Tesseract || typeof window.Tesseract.recognize !== "function") {
         return { status: "OCR indisponível", matches: "Biblioteca de OCR não carregou" };
