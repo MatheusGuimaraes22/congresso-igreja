@@ -1479,34 +1479,32 @@
         return;
       }
 
+      const supabaseFallback = (async () => {
+        const client = await getSupabaseClient();
+        if (!client) return null;
+        const { data, error } = await client
+          .from(CONFIG.supabaseEventsTable)
+          .select("*")
+          .eq("active", true)
+          .order("created_at", { ascending: true });
+        if (error) throw error;
+        return data || [];
+      })();
+
       try {
         const query = "?select=*&active=eq.true&order=created_at.asc";
-        const data = await fetchSupabaseRest(CONFIG.supabaseEventsTable, query);
+        const data = await Promise.any([
+          fetchSupabaseRest(CONFIG.supabaseEventsTable, query),
+          supabaseFallback
+        ]);
         applyLoadedEvents(data || []);
+        renderEventCards();
         return;
       } catch (error) {
-        console.warn("Falha ao carregar eventos via REST:", error.message);
-      }
-
-      const client = await getSupabaseClient();
-      if (!client) {
-        loadEventsLocal();
-        return;
-      }
-
-      const { data, error } = await client
-        .from(CONFIG.supabaseEventsTable)
-        .select("*")
-        .eq("active", true)
-        .order("created_at", { ascending: true });
-
-      if (error) {
         console.warn("Falha ao carregar eventos:", error.message);
-        loadEventsLocal();
-        return;
       }
 
-      applyLoadedEvents(data || []);
+      loadEventsLocal();
     }
 
     async function syncEventsToSupabase(events) {
@@ -3101,10 +3099,12 @@
 
     (async () => {
       renderEventCards();
-      const eventsLoad = loadEventsFromSupabase();
-      await Promise.race([eventsLoad, wait(350)]);
-      await eventsLoad.catch((error) => console.warn("Falha ao inicializar eventos:", error.message));
-      renderEventCards();
+      loadEventsFromSupabase()
+        .then(() => {
+          renderEventCards();
+          renderAdmin();
+        })
+        .catch((error) => console.warn("Falha ao inicializar eventos:", error.message));
       await Promise.race([
         loadRecordsFromSupabase().catch((error) => console.warn("Falha ao inicializar inscritos:", error.message)),
         wait(1200)
