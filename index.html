@@ -1208,7 +1208,6 @@
     </div>
   </main>
 
-  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <script>
     const CONFIG = {
       churchName: "Congresso da Igreja",
@@ -1278,7 +1277,9 @@
 
     const hasLocalStorage = storageAvailable("localStorage");
     const hasSessionStorage = storageAvailable("sessionStorage");
+    const SUPABASE_SRC = "https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2";
     const TESSERACT_SRC = "https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js";
+    let supabaseLoadPromise = null;
     let tesseractLoadPromise = null;
 
     function loadExternalScript(src) {
@@ -1316,11 +1317,23 @@
       return tesseractLoadPromise;
     }
 
+    function ensureSupabaseLoaded() {
+      if (window.supabase && typeof window.supabase.createClient === "function") {
+        return Promise.resolve();
+      }
+      if (!supabaseLoadPromise) {
+        supabaseLoadPromise = loadExternalScript(SUPABASE_SRC);
+      }
+      return supabaseLoadPromise;
+    }
+
     function supabaseEnabled() {
       return Boolean(CONFIG.supabaseUrl && CONFIG.supabaseAnonKey && window.supabase && window.supabase.createClient);
     }
 
-    function getSupabaseClient() {
+    async function getSupabaseClient() {
+      if (!CONFIG.supabaseUrl || !CONFIG.supabaseAnonKey) return null;
+      await ensureSupabaseLoaded();
       if (!supabaseEnabled()) return null;
       if (!supabaseClient) {
         supabaseClient = window.supabase.createClient(CONFIG.supabaseUrl, CONFIG.supabaseAnonKey);
@@ -1478,7 +1491,7 @@
         console.warn("Falha ao carregar eventos via REST:", error.message);
       }
 
-      const client = getSupabaseClient();
+      const client = await getSupabaseClient();
       if (!client) {
         loadEventsLocal();
         return;
@@ -1500,7 +1513,7 @@
     }
 
     async function syncEventsToSupabase(events) {
-      const client = getSupabaseClient();
+      const client = await getSupabaseClient();
       if (!client || !CONFIG.supabaseEventsTable) return { ok: false, skipped: true };
       const { error } = await client
         .from(CONFIG.supabaseEventsTable)
@@ -1513,7 +1526,7 @@
     }
 
     async function deleteEventFromSupabase(eventKey) {
-      const client = getSupabaseClient();
+      const client = await getSupabaseClient();
       if (!client || !CONFIG.supabaseEventsTable) return;
       const { error } = await client.from(CONFIG.supabaseEventsTable).update({ active: false }).eq("key", eventKey);
       if (error) console.warn("Falha ao excluir evento:", error.message);
@@ -1562,7 +1575,7 @@
     }
 
     async function uploadProofToSupabase(file, record) {
-      const client = getSupabaseClient();
+      const client = await getSupabaseClient();
       if (!client || !file || !CONFIG.supabaseProofBucket) return {};
 
       const path = `${record.id}/${Date.now()}-${safeFileName(file.name)}`;
@@ -1580,7 +1593,7 @@
     }
 
     async function loadRecordsFromSupabase() {
-      const client = getSupabaseClient();
+      const client = await getSupabaseClient();
       if (!client) return;
 
       const { data, error } = await client
@@ -1603,7 +1616,7 @@
     }
 
     async function syncRecordsToSupabase(records) {
-      const client = getSupabaseClient();
+      const client = await getSupabaseClient();
       if (!client) return { ok: false, skipped: true };
       if (!records.length) return { ok: true, skipped: false };
 
@@ -1619,14 +1632,14 @@
     }
 
     async function deleteRecordFromSupabase(id) {
-      const client = getSupabaseClient();
+      const client = await getSupabaseClient();
       if (!client || !id) return;
       const { error } = await client.from(CONFIG.supabaseTable).delete().eq("id", id);
       if (error) console.warn("Falha ao remover do Supabase:", error.message);
     }
 
     async function clearSupabaseRecords() {
-      const client = getSupabaseClient();
+      const client = await getSupabaseClient();
       if (!client) return;
       const { error } = await client.from(CONFIG.supabaseTable).delete().not("id", "is", null);
       if (error) console.warn("Falha ao limpar Supabase:", error.message);
@@ -1648,7 +1661,7 @@
         adminUser: CONFIG.adminUser,
         adminPasswordHash: CONFIG.adminPasswordHash || await sha256Hex(CONFIG.adminPassword)
       };
-      const client = getSupabaseClient();
+      const client = await getSupabaseClient();
       if (!client) return fallback;
 
       const { data, error } = await client
@@ -1669,7 +1682,7 @@
     }
 
     async function saveAdminConfig(adminUser, passwordHash) {
-      const client = getSupabaseClient();
+      const client = await getSupabaseClient();
       if (!client) return { ok: false, error: "Supabase não configurado" };
 
       const { error } = await client
@@ -1696,7 +1709,7 @@
     async function getAdminUsers() {
       const fallbackConfig = await getAdminConfig();
       const fallback = [{ adminUser: fallbackConfig.adminUser, passwordHash: fallbackConfig.adminPasswordHash }];
-      const client = getSupabaseClient();
+      const client = await getSupabaseClient();
       if (!client || !CONFIG.supabaseAdminUsersTable) return fallback;
 
       const { data, error } = await client
@@ -1712,7 +1725,7 @@
     }
 
     async function saveAdminUser(adminUser, passwordHash) {
-      const client = getSupabaseClient();
+      const client = await getSupabaseClient();
       if (!client || !CONFIG.supabaseAdminUsersTable) return { ok: false, error: "Tabela admin_users não configurada no Supabase." };
       const { error } = await client
         .from(CONFIG.supabaseAdminUsersTable)
