@@ -1462,13 +1462,10 @@
     function applyLoadedEvents(data) {
       const rows = (data || []).map(rowToEvent);
       if (rows.length) {
-        const merged = mergeEvents(DEFAULT_EVENTS, rows, getStoredEvents());
+        const merged = mergeEvents(DEFAULT_EVENTS, rows);
         EVENTS.splice(0, EVENTS.length, ...merged);
-        if (merged.length > rows.length) {
-          syncEventsToSupabase(merged).catch((syncError) => console.warn("Falha ao sincronizar eventos locais:", syncError.message));
-        }
       } else {
-        const merged = mergeEvents(DEFAULT_EVENTS, getStoredEvents());
+        const merged = mergeEvents(DEFAULT_EVENTS);
         EVENTS.splice(0, EVENTS.length, ...merged);
         syncEventsToSupabase(EVENTS).catch((syncError) => console.warn("Falha ao sincronizar eventos:", syncError.message));
       }
@@ -2961,12 +2958,31 @@
         mapsUrl: data.mapsUrl || `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(data.address || data.name)}`
       });
       const existingIndex = EVENTS.findIndex((eventItem) => eventItem.key === key);
+      const submitButton = event.target.querySelector("button[type='submit']");
+      submitButton.disabled = true;
+      submitButton.textContent = existingIndex >= 0 ? "Salvando..." : "Criando...";
+
+      let result;
+      try {
+        result = await syncEventsToSupabase([newEvent]);
+      } catch (error) {
+        result = { ok: false, error: error.message };
+      }
+
+      if (!result.ok) {
+        submitButton.disabled = false;
+        submitButton.textContent = existingIndex >= 0 ? "Salvar evento" : "Criar evento";
+        showMessage($("#adminEventMessage"), "Evento não salvo.", result.error || "Não foi possível salvar no Supabase. O evento não foi criado localmente.");
+        return;
+      }
+
       if (existingIndex >= 0) EVENTS[existingIndex] = newEvent;
       else EVENTS.push(newEvent);
       activeAdminEventKey = newEvent.key;
       saveEventsLocal();
-      const result = await syncEventsToSupabase([newEvent]);
-      showMessage($("#adminEventMessage"), existingIndex >= 0 ? "Evento atualizado." : "Evento criado.", result.ok ? "O evento já está disponível na página inicial." : "O evento foi salvo neste navegador. Rode o SQL de eventos no Supabase para salvar para todos os acessos.");
+      showMessage($("#adminEventMessage"), existingIndex >= 0 ? "Evento atualizado." : "Evento criado.", "O evento foi salvo no Supabase e já está disponível para todos os acessos.");
+      submitButton.disabled = false;
+      submitButton.textContent = existingIndex >= 0 ? "Salvar evento" : "Criar evento";
       closeEventForm();
       renderEventCards();
       renderAdmin();
