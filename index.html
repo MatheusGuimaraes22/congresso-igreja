@@ -1431,9 +1431,55 @@
       });
     }
 
+    async function fetchSupabaseRest(table, query = "") {
+      if (!CONFIG.supabaseUrl || !CONFIG.supabaseAnonKey || !table) return null;
+      const base = CONFIG.supabaseUrl.replace(/\/$/, "");
+      const response = await fetch(`${base}/rest/v1/${table}${query}`, {
+        headers: {
+          apikey: CONFIG.supabaseAnonKey,
+          Authorization: `Bearer ${CONFIG.supabaseAnonKey}`
+        }
+      });
+      if (!response.ok) {
+        throw new Error(`Supabase REST ${response.status}`);
+      }
+      return response.json();
+    }
+
+    function applyLoadedEvents(data) {
+      const rows = (data || []).map(rowToEvent);
+      if (rows.length) {
+        const merged = mergeEvents(DEFAULT_EVENTS, rows, getStoredEvents());
+        EVENTS.splice(0, EVENTS.length, ...merged);
+        if (merged.length > rows.length) {
+          syncEventsToSupabase(merged).catch((syncError) => console.warn("Falha ao sincronizar eventos locais:", syncError.message));
+        }
+      } else {
+        const merged = mergeEvents(DEFAULT_EVENTS, getStoredEvents());
+        EVENTS.splice(0, EVENTS.length, ...merged);
+        syncEventsToSupabase(EVENTS).catch((syncError) => console.warn("Falha ao sincronizar eventos:", syncError.message));
+      }
+      activeAdminEventKey = EVENTS[0]?.key || "";
+      saveEventsLocal();
+    }
+
     async function loadEventsFromSupabase() {
+      if (!CONFIG.supabaseEventsTable) {
+        loadEventsLocal();
+        return;
+      }
+
+      try {
+        const query = "?select=*&active=eq.true&order=created_at.asc";
+        const data = await fetchSupabaseRest(CONFIG.supabaseEventsTable, query);
+        applyLoadedEvents(data || []);
+        return;
+      } catch (error) {
+        console.warn("Falha ao carregar eventos via REST:", error.message);
+      }
+
       const client = getSupabaseClient();
-      if (!client || !CONFIG.supabaseEventsTable) {
+      if (!client) {
         loadEventsLocal();
         return;
       }
@@ -1450,20 +1496,7 @@
         return;
       }
 
-      const rows = (data || []).map(rowToEvent);
-      if (rows.length) {
-        const merged = mergeEvents(DEFAULT_EVENTS, rows, getStoredEvents());
-        EVENTS.splice(0, EVENTS.length, ...merged);
-        if (merged.length > rows.length) {
-          syncEventsToSupabase(merged).catch((syncError) => console.warn("Falha ao sincronizar eventos locais:", syncError.message));
-        }
-      } else {
-        const merged = mergeEvents(DEFAULT_EVENTS, getStoredEvents());
-        EVENTS.splice(0, EVENTS.length, ...merged);
-        await syncEventsToSupabase(EVENTS);
-      }
-      activeAdminEventKey = EVENTS[0]?.key || "";
-      saveEventsLocal();
+      applyLoadedEvents(data || []);
     }
 
     async function syncEventsToSupabase(events) {
@@ -3040,7 +3073,7 @@
     (async () => {
       renderEventCards();
       const eventsLoad = loadEventsFromSupabase();
-      await Promise.race([eventsLoad, wait(800)]);
+      await Promise.race([eventsLoad, wait(350)]);
       await eventsLoad.catch((error) => console.warn("Falha ao inicializar eventos:", error.message));
       renderEventCards();
       await Promise.race([
