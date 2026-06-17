@@ -2180,6 +2180,7 @@
             <p><a class="map-link" href="${record.validationLink || makeValidationLink(record)}" target="_blank" rel="noopener">Abrir confirmação da inscrição</a></p>
             <p class="hint">${record.eventPaid ? "A aprovação depende da confirmação de pagamento." : "Este evento é gratuito; a inscrição já fica aprovada se houver vaga."}</p>
             <p class="hint">Confira sua caixa de entrada e o WhatsApp informado. O convite da agenda chega pelo e-mail cadastrado.</p>
+            <p><a class="btn btn--ghost" href="${makeGoogleCalendarLink(record)}" target="_blank" rel="noopener">Adicionar à Google Agenda</a></p>
           </div>
         </div>
       `;
