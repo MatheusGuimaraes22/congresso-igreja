@@ -1363,12 +1363,31 @@
       }
     }
 
+    function getStoredEvents() {
+      if (!hasLocalStorage) return [];
+      try {
+        const stored = JSON.parse(localStorage.getItem(`${CONFIG.storageKey}:events`) || "[]");
+        return Array.isArray(stored) ? stored.map(normalizeEvent) : [];
+      } catch {
+        return [];
+      }
+    }
+
+    function mergeEvents(...groups) {
+      const merged = new Map();
+      groups.flat().filter(Boolean).forEach((event) => {
+        const normalized = normalizeEvent(event);
+        merged.set(normalized.key, normalized);
+      });
+      return Array.from(merged.values());
+    }
+
     function loadEventsLocal() {
       if (!hasLocalStorage) return;
       try {
-        const stored = JSON.parse(localStorage.getItem(`${CONFIG.storageKey}:events`) || "[]");
+        const stored = getStoredEvents();
         if (stored.length) {
-          EVENTS.splice(0, EVENTS.length, ...stored.map(normalizeEvent));
+          EVENTS.splice(0, EVENTS.length, ...stored);
           activeAdminEventKey = EVENTS[0]?.key || "";
         }
       } catch {
@@ -1433,8 +1452,14 @@
 
       const rows = (data || []).map(rowToEvent);
       if (rows.length) {
-        EVENTS.splice(0, EVENTS.length, ...rows);
+        const merged = mergeEvents(DEFAULT_EVENTS, rows, getStoredEvents());
+        EVENTS.splice(0, EVENTS.length, ...merged);
+        if (merged.length > rows.length) {
+          syncEventsToSupabase(merged).catch((syncError) => console.warn("Falha ao sincronizar eventos locais:", syncError.message));
+        }
       } else {
+        const merged = mergeEvents(DEFAULT_EVENTS, getStoredEvents());
+        EVENTS.splice(0, EVENTS.length, ...merged);
         await syncEventsToSupabase(EVENTS);
       }
       activeAdminEventKey = EVENTS[0]?.key || "";
