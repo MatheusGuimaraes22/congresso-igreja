@@ -2971,10 +2971,20 @@
       input.focus();
     });
 
+    function wait(ms) {
+      return new Promise((resolve) => setTimeout(resolve, ms));
+    }
+
     (async () => {
-      await loadEventsFromSupabase();
-      await loadRecordsFromSupabase();
+      const eventsLoad = loadEventsFromSupabase();
+      await Promise.race([eventsLoad, wait(2500)]);
       renderEventCards();
+      await eventsLoad.catch((error) => console.warn("Falha ao inicializar eventos:", error.message));
+      renderEventCards();
+      await Promise.race([
+        loadRecordsFromSupabase().catch((error) => console.warn("Falha ao inicializar inscritos:", error.message)),
+        wait(2500)
+      ]);
       if (await applyValidationFromUrl()) return;
       applyProofReturnFromUrl();
       if (!applyAdminRouteFromUrl() && !applyEventRegistrationFromUrl()) {
