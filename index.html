@@ -2171,7 +2171,7 @@
         <p>Endereço: <a class="map-link" href="${escapeHtml(record.eventMapsUrl || "#")}" target="_blank" rel="noopener">${escapeHtml(record.eventAddress || "A confirmar")}</a>.</p>
         <p>Código: <strong>${record.id}</strong>. Referência de pagamento: <strong>${record.paymentReference}</strong>.</p>
         <p>Forma de pagamento escolhida: <strong>${record.paymentMethod || "Não informada"}</strong>.</p>
-        <p>Status da integração: <strong>${record.integrationStatus || "Local"}</strong>.</p>
+        <p><strong>Confirmação enviada automaticamente.</strong> O e-mail de inscrição, o convite da Google Agenda, o WhatsApp e o aviso à administração são solicitados pelo sistema após a finalização.</p>
         <div class="qr-wrap">
           <img alt="QR Code de confirmação da inscrição" src="${makeQrUrl(record.validationLink || makeValidationLink(record))}">
           <div>
@@ -2179,14 +2179,7 @@
             ${record.eventPaid ? `<p><a class="map-link" href="${record.registrationLink}" target="_blank" rel="noopener">Abrir link individual de pagamento</a></p><p><a class="map-link" href="${makeProofReturnLink(record)}">Enviar comprovante por link individual</a></p>` : ""}
             <p><a class="map-link" href="${record.validationLink || makeValidationLink(record)}" target="_blank" rel="noopener">Abrir confirmação da inscrição</a></p>
             <p class="hint">${record.eventPaid ? "A aprovação depende da confirmação de pagamento." : "Este evento é gratuito; a inscrição já fica aprovada se houver vaga."}</p>
-            <p>
-              <a class="btn btn--ghost" href="${mailtoFor(record, "registration")}">Preparar e-mail de inscrição</a>
-              ${record.phone ? `<a class="btn btn--ghost" href="${makeWhatsAppLink(record)}" target="_blank" rel="noopener">Enviar WhatsApp</a>` : ""}
-              <a class="btn btn--ghost" href="${makeGoogleCalendarLink(record)}" target="_blank" rel="noopener">Adicionar à Google Agenda</a>
-              <button class="btn btn--ghost" type="button" data-action="download-ics" data-id="${record.id}">Baixar convite .ics</button>
-              <a class="btn btn--ghost" href="${mailtoFor(record, "admin")}">Avisar administração</a>
-              ${record.paymentStatus === "Pago" ? `<a class="btn btn--ghost" href="${mailtoFor(record, "paid")}">Preparar e-mail de pagamento</a>` : ""}
-            </p>
+            <p class="hint">Confira sua caixa de entrada e o WhatsApp informado. O convite da agenda chega pelo e-mail cadastrado.</p>
           </div>
         </div>
       `;
@@ -2692,8 +2685,10 @@
           });
         }
         const paymentUrl = pickPaymentUrl(webhookResult.data);
-        const supabaseResult = await syncRecordsToSupabase([record]);
-        const calendarResult = await sendCalendarInvite(record);
+        const [supabaseResult, calendarResult] = await Promise.all([
+          syncRecordsToSupabase([record]).catch((error) => ({ ok: false, error: error.message })),
+          sendCalendarInvite(record).catch((error) => ({ ok: false, error: error.message }))
+        ]);
         if (paymentUrl) {
           record.registrationLink = paymentUrl;
         }
