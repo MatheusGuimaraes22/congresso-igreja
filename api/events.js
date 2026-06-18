@@ -1,6 +1,7 @@
 const SUPABASE_URL = process.env.SUPABASE_URL || "https://fzufcfefcikcklbkuerf.supabase.co";
 const SUPABASE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABASE_ANON_KEY || "sb_publishable__7eNcEjFykry9wBXn8tpzA_evGhJd9_";
 const EVENTS_TABLE = process.env.SUPABASE_EVENTS_TABLE || "eventos_config";
+const https = require("node:https");
 
 function json(res, status, body) {
   res.setHeader("Content-Type", "application/json; charset=utf-8");
@@ -74,20 +75,21 @@ function fromRow(row) {
 }
 
 async function supabase(path, options = {}) {
-  const response = await fetch(`${SUPABASE_URL.replace(/\/$/, "")}/rest/v1/${path}`, {
-    ...options,
+  const response = await requestJson(`${SUPABASE_URL.replace(/\/$/, "")}/rest/v1/${path}`, {
+    method: options.method || "GET",
     headers: {
       apikey: SUPABASE_KEY,
       Authorization: `Bearer ${SUPABASE_KEY}`,
       "Content-Type": "application/json",
       Prefer: "return=representation",
       ...(options.headers || {})
-    }
+    },
+    body: options.body
   });
 
-  const text = await response.text();
+  const text = response.text;
   const data = text ? JSON.parse(text) : null;
-  if (!response.ok) {
+  if (response.status < 200 || response.status >= 300) {
     const message = data && (data.message || data.error) ? data.message || data.error : `Supabase ${response.status}`;
     const error = new Error(message);
     error.status = response.status;
@@ -95,6 +97,34 @@ async function supabase(path, options = {}) {
     throw error;
   }
   return data;
+}
+
+function requestJson(url, options = {}) {
+  return new Promise((resolve, reject) => {
+    const parsed = new URL(url);
+    const req = https.request({
+      hostname: parsed.hostname,
+      path: `${parsed.pathname}${parsed.search}`,
+      method: options.method || "GET",
+      headers: options.headers || {}
+    }, (res) => {
+      let text = "";
+      res.setEncoding("utf8");
+      res.on("data", (chunk) => {
+        text += chunk;
+      });
+      res.on("end", () => {
+        resolve({ status: res.statusCode || 0, text });
+      });
+    });
+
+    req.on("error", reject);
+    req.setTimeout(12000, () => {
+      req.destroy(new Error("Tempo esgotado ao chamar Supabase."));
+    });
+    if (options.body) req.write(options.body);
+    req.end();
+  });
 }
 
 module.exports = async function handler(req, res) {
