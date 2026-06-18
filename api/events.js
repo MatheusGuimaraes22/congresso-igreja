@@ -124,7 +124,60 @@ function requestJson(url, options = {}) {
     });
     if (options.body) req.write(options.body);
     req.end();
+  }).catch(async (error) => {
+    if (error && error.code === "ENOTFOUND") {
+      if (new URL(url).hostname === "cloudflare-dns.com") throw error;
+      return requestJsonWithResolvedHost(url, options);
+    }
+    throw error;
   });
+}
+
+async function requestJsonWithResolvedHost(url, options = {}) {
+  const parsed = new URL(url);
+  const address = await resolveARecord(parsed.hostname);
+  return new Promise((resolve, reject) => {
+    const headers = {
+      ...(options.headers || {}),
+      Host: parsed.hostname
+    };
+    const req = https.request({
+      hostname: address,
+      servername: parsed.hostname,
+      path: `${parsed.pathname}${parsed.search}`,
+      method: options.method || "GET",
+      headers
+    }, (res) => {
+      let text = "";
+      res.setEncoding("utf8");
+      res.on("data", (chunk) => {
+        text += chunk;
+      });
+      res.on("end", () => {
+        resolve({ status: res.statusCode || 0, text });
+      });
+    });
+
+    req.on("error", reject);
+    req.setTimeout(12000, () => {
+      req.destroy(new Error("Tempo esgotado ao chamar Supabase."));
+    });
+    if (options.body) req.write(options.body);
+    req.end();
+  });
+}
+
+async function resolveARecord(hostname) {
+  const result = await requestJson(`https://cloudflare-dns.com/dns-query?name=${encodeURIComponent(hostname)}&type=A`, {
+    method: "GET",
+    headers: { Accept: "application/dns-json" }
+  });
+  const data = result.text ? JSON.parse(result.text) : null;
+  const answer = data && Array.isArray(data.Answer)
+    ? data.Answer.find((item) => item.type === 1 && item.data)
+    : null;
+  if (!answer) throw new Error(`DNS não resolveu ${hostname}.`);
+  return answer.data;
 }
 
 module.exports = async function handler(req, res) {
