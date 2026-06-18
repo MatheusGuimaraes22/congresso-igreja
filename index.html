@@ -838,7 +838,7 @@
     <div class="wrap">
       <nav class="tabs" aria-label="Áreas da página">
         <button class="tab" type="button" aria-selected="true" data-tab="eventos">Eventos</button>
-        <button class="tab" type="button" aria-selected="false" data-tab="comprovante">Comprovante opcional</button>
+        <button class="tab" type="button" aria-selected="false" data-tab="comprovante">Enviar comprovante</button>
         <button class="tab" type="button" aria-selected="false" data-tab="admin">Administração</button>
       </nav>
 
@@ -1008,8 +1008,8 @@
 
       <section id="comprovante" class="panel proof-section" aria-label="Envio de comprovante">
         <div class="panel__head">
-          <h2>Comprovante opcional</h2>
-          <p>Este envio é apoio para conferência da administração. O comprovante não marca pagamento como aprovado sem verificação.</p>
+          <h2>Enviar comprovante do banco</h2>
+          <p>No app do banco, toque em Compartilhar comprovante e salve o PDF ou a imagem. Depois anexe o arquivo aqui para conferência da administração.</p>
         </div>
 
         <form id="proofForm" class="proof-form">
@@ -1033,17 +1033,17 @@
                 <input id="proofTransactionId" name="proofTransactionId" autocomplete="off" placeholder="Código do banco, Pix ou cartão" required>
               </div>
               <div class="field field--full">
-                <label for="latePaymentProof">Comprovante *</label>
+                <label for="latePaymentProof">Comprovante do banco *</label>
                 <div class="upload-box">
                   <input id="latePaymentProof" name="latePaymentProof" type="file" accept="image/*,.pdf" required>
-                  <span class="hint">O comprovante precisa mostrar o valor pago, o código da inscrição ou referência e o ID/autenticação da transação. Para imagens, o site tentará ler esses dados por OCR.</span>
+                  <span class="hint">Aceita PDF ou imagem. O comprovante precisa mostrar valor pago, código da inscrição ou referência e ID/autenticação da transação. Para imagens, o site tentará ler esses dados por OCR.</span>
                 </div>
               </div>
             </div>
           </fieldset>
 
           <div class="actions">
-            <button class="btn btn--primary" type="submit">Enviar comprovante opcional</button>
+            <button class="btn btn--primary" type="submit">Enviar comprovante do banco</button>
           </div>
           <div class="success" id="proofSuccessBox" role="status" aria-live="polite"></div>
         </form>
