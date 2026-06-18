@@ -146,17 +146,17 @@
       gap: 14px;
       margin: 0 0 18px;
       padding: 18px;
-      border: 1px solid rgba(219, 205, 189, .72);
+      border: 1px solid var(--line);
       border-radius: 8px;
-      background: #171817;
-      box-shadow: var(--shadow);
+      background: var(--paper-2);
+      box-shadow: 0 12px 30px rgba(31, 36, 33, .07);
     }
 
     .quick-link {
       display: grid;
       justify-items: center;
       gap: 10px;
-      color: #f8efe5;
+      color: var(--primary-2);
       text-decoration: none;
       font-weight: 800;
       text-align: center;
@@ -169,20 +169,28 @@
       width: 84px;
       height: 84px;
       border-radius: 50%;
-      border: 4px solid #3b4245;
-      background: radial-gradient(circle at 50% 45%, #4b3326, #241d19 72%);
-      color: #d7873e;
-      font-size: 34px;
-      box-shadow: inset 0 0 0 5px #111516, 0 8px 18px rgba(0, 0, 0, .26);
+      border: 4px solid #d8c7b5;
+      background: radial-gradient(circle at 50% 42%, #77451f, var(--primary) 72%);
+      color: #f0d2ad;
+      box-shadow: inset 0 0 0 5px #f3e7d8, 0 10px 22px rgba(88, 48, 22, .18);
       transform: translateY(0);
-      transition: transform .15s ease, box-shadow .15s ease, border-color .15s ease;
+      transition: transform .15s ease, box-shadow .15s ease, border-color .15s ease, background .15s ease;
+    }
+
+    .quick-link__icon svg,
+    .quick-link__icon img {
+      display: block;
+      width: 38px;
+      height: 38px;
+      object-fit: contain;
     }
 
     .quick-link:hover .quick-link__icon,
     .quick-link:focus-visible .quick-link__icon {
       transform: translateY(3px);
-      border-color: #5a6265;
-      box-shadow: inset 0 5px 12px rgba(0, 0, 0, .35), 0 4px 10px rgba(0, 0, 0, .28);
+      border-color: var(--primary);
+      background: radial-gradient(circle at 50% 42%, #8d4f2a, #4b2813 76%);
+      box-shadow: inset 0 5px 14px rgba(42, 33, 27, .28), 0 5px 12px rgba(88, 48, 22, .16);
     }
 
     .quick-link__label {
@@ -1300,12 +1308,12 @@
       publicSiteUrl: "https://congresso-igreja.vercel.app",
       storageKey: "congressoIgrejaInscricoes",
       quickLinks: [
-        { label: "Informativo", icon: "i", href: "https://www.instagram.com/igrejacomunidadedacruz?utm_source=ig_web_button_share_sheet&igsh=ZDNlZDc0MzIxNw==" },
-        { label: "Localização", icon: "⌖", href: "https://www.google.com/maps/search/?api=1&query=Igreja%20Reformada%20Comunidade%20da%20Cruz" },
-        { label: "YouTube", icon: "▶", href: "https://www.youtube.com/@IgrejaComunidadeDaCruz" },
-        { label: "Agenda", icon: "▦", href: "https://comunidadedacruz.glide.page/" },
-        { label: "Sobre nós", icon: "✚", href: "https://comunidadedacruz.org.br/" },
-        { label: "Playlist", icon: "♫", href: "https://open.spotify.com/playlist/2PhqrGmCoBiyMo1CdHsXhz?si=OIyBJCQjSsuBeKewKLUjOA&fbclid=PAZXh0bgNhZW0CMTEAc3J0YwZhcHBfaWQMMjU2MjgxMDQwNTU4AAGnPmcphM9ifrYTFbQzeZY197qHksJRoM7xlVR59JDetbj96gyJg-FyyuWziQE_aem_NfyCpCLjmUD3vprlB-_wmw&nd=1&dlsi=2f2ce814898048be" }
+        { label: "Instagram", icon: "instagram", href: "https://www.instagram.com/igrejacomunidadedacruz?utm_source=ig_web_button_share_sheet&igsh=ZDNlZDc0MzIxNw==" },
+        { label: "Localização", icon: "maps", href: "https://www.google.com/maps/search/?api=1&query=Igreja%20Reformada%20Comunidade%20da%20Cruz" },
+        { label: "YouTube", icon: "youtube", href: "https://www.youtube.com/@IgrejaComunidadeDaCruz" },
+        { label: "Agenda", icon: "calendar", href: "#eventos", internal: true },
+        { label: "Sobre nós", icon: "church", href: "https://comunidadedacruz.org.br/" },
+        { label: "Playlist", icon: "spotify", href: "https://open.spotify.com/playlist/2PhqrGmCoBiyMo1CdHsXhz?si=OIyBJCQjSsuBeKewKLUjOA&fbclid=PAZXh0bgNhZW0CMTEAc3J0YwZhcHBfaWQMMjU2MjgxMDQwNTU4AAGnPmcphM9ifrYTFbQzeZY197qHksJRoM7xlVR59JDetbj96gyJg-FyyuWziQE_aem_NfyCpCLjmUD3vprlB-_wmw&nd=1&dlsi=2f2ce814898048be" }
       ]
     };
 
@@ -2098,11 +2106,24 @@
         const externalAttr = link.internal ? "" : `target="_blank" rel="noopener"`;
         return `
           <a class="quick-link" href="${escapeHtml(link.href)}" ${internalAttr} ${externalAttr}>
-            <span class="quick-link__icon" aria-hidden="true">${escapeHtml(link.icon)}</span>
+            <span class="quick-link__icon" aria-hidden="true">${quickLinkIcon(link.icon)}</span>
             <span class="quick-link__label">${escapeHtml(link.label)}</span>
           </a>
         `;
       }).join("");
+    }
+
+    function quickLinkIcon(icon) {
+      const common = `fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"`;
+      const icons = {
+        instagram: `<svg viewBox="0 0 24 24" aria-hidden="true"><rect x="4" y="4" width="16" height="16" rx="5" ${common}/><circle cx="12" cy="12" r="3.4" ${common}/><circle cx="17.2" cy="6.8" r="1" fill="currentColor"/></svg>`,
+        maps: `<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 21s6-5.4 6-11a6 6 0 0 0-12 0c0 5.6 6 11 6 11Z" ${common}/><circle cx="12" cy="10" r="2.2" ${common}/></svg>`,
+        youtube: `<svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="6" width="18" height="12" rx="3" fill="currentColor"/><path d="M10 9.5v5l5-2.5-5-2.5Z" fill="#583016"/></svg>`,
+        calendar: `<svg viewBox="0 0 24 24" aria-hidden="true"><rect x="4" y="5" width="16" height="15" rx="2" ${common}/><path d="M8 3v4M16 3v4M4 10h16" ${common}/><path d="M8 14h2M12 14h2M16 14h2M8 17h2M12 17h2" ${common}/></svg>`,
+        church: `<img src="assets/icc-symbol.png" alt="">`,
+        spotify: `<svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9" ${common}/><path d="M7.5 10c3.4-1 6.5-.7 9.2 1M8.3 13c2.7-.7 5-.5 7.1.7M9.1 15.7c1.8-.4 3.6-.3 5.2.5" ${common}/></svg>`
+      };
+      return icons[icon] || icons.instagram;
     }
 
     function eventApproved(record) {
