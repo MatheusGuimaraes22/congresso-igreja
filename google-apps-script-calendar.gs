@@ -57,8 +57,7 @@ function createCalendarInvite(registration) {
 
   return {
     ok: true,
-    eventId: event.getId(),
-    htmlLink: event.getHtmlLink()
+    eventId: event.getId()
   };
 }
 

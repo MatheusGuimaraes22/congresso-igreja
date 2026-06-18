@@ -39,8 +39,7 @@ function doPost(e) {
 
     return jsonResponse({
       ok: true,
-      eventId: event.getId(),
-      eventLink: event.getHtmlLink()
+      eventId: event.getId()
     });
   } catch (error) {
     return jsonResponse({ ok: false, error: error.message });
