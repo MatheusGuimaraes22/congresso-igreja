@@ -2005,6 +2005,11 @@
       return getRecords().filter((record) => getRecordEventKey(record) === eventKey);
     }
 
+    function hasCpfRegistrationForEvent(cpf, eventKey) {
+      const normalizedCpf = onlyDigits(cpf);
+      return eventRecords(eventKey).find((record) => onlyDigits(record.cpf) === normalizedCpf) || null;
+    }
+
     function eventCount(eventKey) {
       return eventRecords(eventKey).length;
     }
@@ -2958,6 +2963,12 @@
         if (eventCount(event.key) >= event.capacity) {
           showMessage(successBox, "Vagas esgotadas.", `O evento ${event.name} atingiu o limite de ${event.capacity} vagas.`);
           renderEventCards();
+          return;
+        }
+
+        const existingRegistration = hasCpfRegistrationForEvent($("#cpf").value, event.key);
+        if (existingRegistration) {
+          showMessage(successBox, "Inscrição já existente.", `Este CPF já possui inscrição para ${event.name}. Código: ${existingRegistration.id}.`);
           return;
         }
 

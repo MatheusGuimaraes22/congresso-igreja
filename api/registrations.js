@@ -45,6 +45,31 @@ function rowToRecord(row = {}) {
   };
 }
 
+function onlyDigits(value) {
+  return String(value || "").replace(/\D/g, "");
+}
+
+function getRecordEventKey(record = {}) {
+  return record.eventKey || "congresso-mulheres";
+}
+
+function isSameCpfAndEvent(left = {}, right = {}) {
+  return onlyDigits(left.cpf) &&
+    onlyDigits(left.cpf) === onlyDigits(right.cpf) &&
+    getRecordEventKey(left) === getRecordEventKey(right) &&
+    left.id !== right.id;
+}
+
+async function findDuplicateRegistration(record) {
+  const rows = await supabase(`${REGISTRATIONS_TABLE}?select=id,cpf,data`, {
+    method: "GET",
+    headers: { Prefer: "" }
+  });
+  return (rows || [])
+    .map(rowToRecord)
+    .find((existing) => isSameCpfAndEvent(existing, record));
+}
+
 async function supabase(path, options = {}) {
   const response = await requestText(`${SUPABASE_URL.replace(/\/$/, "")}/rest/v1/${path}`, {
     method: options.method || "GET",
@@ -141,6 +166,17 @@ module.exports = async function handler(req, res) {
         ? req.body.records
         : [req.body && (req.body.record || req.body)].filter(Boolean);
       if (!records.length) return json(res, 400, { ok: false, error: "Nenhuma inscrição enviada." });
+
+      for (const record of records) {
+        const duplicate = await findDuplicateRegistration(record);
+        if (duplicate) {
+          return json(res, 409, {
+            ok: false,
+            error: "Este CPF ja possui inscricao para este evento.",
+            duplicateId: duplicate.id
+          });
+        }
+      }
 
       const rows = await supabase(`${REGISTRATIONS_TABLE}?on_conflict=id`, {
         method: "POST",
