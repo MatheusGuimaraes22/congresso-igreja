@@ -1223,6 +1223,8 @@
       supabaseEventsTable: "eventos_config",
       supabaseProofBucket: "comprovantes",
       eventsApiUrl: "/api/events",
+      registrationsApiUrl: "/api/registrations",
+      adminApiUrl: "/api/admin",
       adminEmail: "administracao@igreja.com",
       adminUser: "secretaria",
       adminPassword: "5solas",
@@ -1617,6 +1619,53 @@
       };
     }
 
+    async function loadRecordsFromApi() {
+      if (!CONFIG.registrationsApiUrl) return null;
+      const response = await fetch(`${CONFIG.registrationsApiUrl}?t=${Date.now()}`, {
+        headers: { Accept: "application/json" },
+        cache: "no-store"
+      });
+      const data = await response.json();
+      if (!response.ok || !data.ok) {
+        throw new Error(data.error || `API de inscrições ${response.status}`);
+      }
+      return data.records || [];
+    }
+
+    async function saveRecordsToApi(records, options = {}) {
+      if (!CONFIG.registrationsApiUrl) return { ok: false, skipped: true };
+      const response = await fetch(CONFIG.registrationsApiUrl, {
+        method: "POST",
+        headers: { "Content-Type": "application/json", Accept: "application/json" },
+        body: JSON.stringify({ records, notify: options.notify === true })
+      });
+      const data = await response.json();
+      if (!response.ok || !data.ok) {
+        return { ok: false, error: data.error || `API de inscrições ${response.status}` };
+      }
+      return { ok: true, records: data.records || [], notifications: data.notifications || [] };
+    }
+
+    async function deleteRecordFromApi(id) {
+      if (!CONFIG.registrationsApiUrl || !id) return { ok: false, skipped: true };
+      const response = await fetch(`${CONFIG.registrationsApiUrl}?id=${encodeURIComponent(id)}`, {
+        method: "DELETE",
+        headers: { Accept: "application/json" }
+      });
+      const data = await response.json();
+      return response.ok && data.ok ? { ok: true } : { ok: false, error: data.error || `API de inscrições ${response.status}` };
+    }
+
+    async function clearEventRecordsFromApi(eventKey) {
+      if (!CONFIG.registrationsApiUrl || !eventKey) return { ok: false, skipped: true };
+      const response = await fetch(`${CONFIG.registrationsApiUrl}?eventKey=${encodeURIComponent(eventKey)}`, {
+        method: "DELETE",
+        headers: { Accept: "application/json" }
+      });
+      const data = await response.json();
+      return response.ok && data.ok ? { ok: true, deleted: data.deleted || 0 } : { ok: false, error: data.error || `API de inscrições ${response.status}` };
+    }
+
     function safeFileName(name) {
       return String(name || "comprovante")
         .normalize("NFD")
@@ -1644,6 +1693,19 @@
     }
 
     async function loadRecordsFromSupabase() {
+      try {
+        const records = await loadRecordsFromApi();
+        if (records) {
+          memoryRecords = records;
+          if (hasLocalStorage) localStorage.setItem(CONFIG.storageKey, JSON.stringify(records));
+          renderAdmin();
+          renderEventCards();
+          return;
+        }
+      } catch (error) {
+        console.warn("Falha ao carregar inscrições pela API:", error.message);
+      }
+
       const client = await getSupabaseClient();
       if (!client) return;
 
@@ -1666,7 +1728,10 @@
       renderEventCards();
     }
 
-    async function syncRecordsToSupabase(records) {
+    async function syncRecordsToSupabase(records, options = {}) {
+      const apiResult = await saveRecordsToApi(records, options);
+      if (apiResult.ok) return apiResult;
+
       const client = await getSupabaseClient();
       if (!client) return { ok: false, skipped: true };
       if (!records.length) return { ok: true, skipped: false };
@@ -1683,6 +1748,8 @@
     }
 
     async function deleteRecordFromSupabase(id) {
+      const apiResult = await deleteRecordFromApi(id);
+      if (apiResult.ok) return;
       const client = await getSupabaseClient();
       if (!client || !id) return;
       const { error } = await client.from(CONFIG.supabaseTable).delete().eq("id", id);
@@ -1697,6 +1764,8 @@
     }
 
     async function clearSupabaseEventRecords(eventKey) {
+      const apiResult = await clearEventRecordsFromApi(eventKey);
+      if (apiResult.ok) return;
       const records = getRecords().filter((record) => getRecordEventKey(record) === eventKey);
       await Promise.all(records.map((record) => deleteRecordFromSupabase(record.id)));
     }
@@ -1707,11 +1776,49 @@
       return Array.from(new Uint8Array(hash)).map((byte) => byte.toString(16).padStart(2, "0")).join("");
     }
 
+    async function getAdminStateFromApi() {
+      if (!CONFIG.adminApiUrl) return null;
+      const response = await fetch(`${CONFIG.adminApiUrl}?t=${Date.now()}`, {
+        headers: { Accept: "application/json" },
+        cache: "no-store"
+      });
+      const data = await response.json();
+      if (!response.ok || !data.ok) {
+        throw new Error(data.error || `API admin ${response.status}`);
+      }
+      return data;
+    }
+
+    async function saveAdminUserToApi(adminUser, passwordHash, target = "user") {
+      if (!CONFIG.adminApiUrl) return { ok: false, skipped: true };
+      const response = await fetch(CONFIG.adminApiUrl, {
+        method: "POST",
+        headers: { "Content-Type": "application/json", Accept: "application/json" },
+        body: JSON.stringify({ adminUser, passwordHash, target })
+      });
+      const data = await response.json();
+      if (!response.ok || !data.ok) {
+        return { ok: false, error: data.error || `API admin ${response.status}` };
+      }
+      return { ok: true };
+    }
+
     async function getAdminConfig() {
       const fallback = {
         adminUser: CONFIG.adminUser,
         adminPasswordHash: CONFIG.adminPasswordHash || await sha256Hex(CONFIG.adminPassword)
       };
+      try {
+        const state = await getAdminStateFromApi();
+        if (state && state.config) {
+          return {
+            adminUser: state.config.adminUser || fallback.adminUser,
+            adminPasswordHash: state.config.adminPasswordHash || fallback.adminPasswordHash
+          };
+        }
+      } catch (error) {
+        console.warn("Falha ao carregar configuração admin pela API:", error.message);
+      }
       const client = await getSupabaseClient();
       if (!client) return fallback;
 
@@ -1733,6 +1840,12 @@
     }
 
     async function saveAdminConfig(adminUser, passwordHash) {
+      const apiResult = await saveAdminUserToApi(adminUser, passwordHash, "config");
+      if (apiResult.ok) {
+        CONFIG.adminUser = adminUser;
+        CONFIG.adminPasswordHash = passwordHash;
+        return { ok: true };
+      }
       const client = await getSupabaseClient();
       if (!client) return { ok: false, error: "Supabase não configurado" };
 
@@ -1760,6 +1873,14 @@
     async function getAdminUsers() {
       const fallbackConfig = await getAdminConfig();
       const fallback = [{ adminUser: fallbackConfig.adminUser, passwordHash: fallbackConfig.adminPasswordHash }];
+      try {
+        const state = await getAdminStateFromApi();
+        if (state && state.users && state.users.length) {
+          return state.users;
+        }
+      } catch (error) {
+        console.warn("Falha ao carregar usuários admin pela API:", error.message);
+      }
       const client = await getSupabaseClient();
       if (!client || !CONFIG.supabaseAdminUsersTable) return fallback;
 
@@ -1776,6 +1897,8 @@
     }
 
     async function saveAdminUser(adminUser, passwordHash) {
+      const apiResult = await saveAdminUserToApi(adminUser, passwordHash, "user");
+      if (apiResult.ok) return { ok: true };
       const client = await getSupabaseClient();
       if (!client || !CONFIG.supabaseAdminUsersTable) return { ok: false, error: "Tabela admin_users não configurada no Supabase." };
       const { error } = await client
@@ -2808,10 +2931,11 @@
           });
         }
         const paymentUrl = pickPaymentUrl(webhookResult.data);
-        const [supabaseResult, calendarResult] = await Promise.all([
-          syncRecordsToSupabase([record]).catch((error) => ({ ok: false, error: error.message })),
-          sendCalendarInvite(record).catch((error) => ({ ok: false, error: error.message }))
-        ]);
+        const supabaseResult = await syncRecordsToSupabase([record], { notify: true })
+          .catch((error) => ({ ok: false, error: error.message }));
+        const calendarResult = supabaseResult.ok
+          ? { ok: true }
+          : await sendCalendarInvite(record).catch((error) => ({ ok: false, error: error.message }));
         if (paymentUrl) {
           record.registrationLink = paymentUrl;
         }
