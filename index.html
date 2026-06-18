@@ -140,6 +140,56 @@
       border-color: var(--primary);
     }
 
+    .quick-links {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(104px, 1fr));
+      gap: 14px;
+      margin: 0 0 18px;
+      padding: 18px;
+      border: 1px solid rgba(219, 205, 189, .72);
+      border-radius: 8px;
+      background: #171817;
+      box-shadow: var(--shadow);
+    }
+
+    .quick-link {
+      display: grid;
+      justify-items: center;
+      gap: 10px;
+      color: #f8efe5;
+      text-decoration: none;
+      font-weight: 800;
+      text-align: center;
+      outline-offset: 4px;
+    }
+
+    .quick-link__icon {
+      display: grid;
+      place-items: center;
+      width: 84px;
+      height: 84px;
+      border-radius: 50%;
+      border: 4px solid #3b4245;
+      background: radial-gradient(circle at 50% 45%, #4b3326, #241d19 72%);
+      color: #d7873e;
+      font-size: 34px;
+      box-shadow: inset 0 0 0 5px #111516, 0 8px 18px rgba(0, 0, 0, .26);
+      transform: translateY(0);
+      transition: transform .15s ease, box-shadow .15s ease, border-color .15s ease;
+    }
+
+    .quick-link:hover .quick-link__icon,
+    .quick-link:focus-visible .quick-link__icon {
+      transform: translateY(3px);
+      border-color: #5a6265;
+      box-shadow: inset 0 5px 12px rgba(0, 0, 0, .35), 0 4px 10px rgba(0, 0, 0, .28);
+    }
+
+    .quick-link__label {
+      line-height: 1.15;
+      font-size: 14px;
+    }
+
     .event-grid {
       display: grid;
       grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
@@ -797,6 +847,22 @@
         min-height: 42vh;
       }
 
+      .quick-links {
+        grid-template-columns: repeat(3, 1fr);
+        gap: 12px;
+        padding: 14px;
+      }
+
+      .quick-link__icon {
+        width: 70px;
+        height: 70px;
+        font-size: 28px;
+      }
+
+      .quick-link__label {
+        font-size: 12px;
+      }
+
       .panel__head,
       form,
       .side,
@@ -841,6 +907,8 @@
         <button class="tab" type="button" aria-selected="false" data-tab="comprovante">Comprovante de pagamento</button>
         <button class="tab" type="button" aria-selected="false" data-tab="admin">Administração</button>
       </nav>
+
+      <nav class="quick-links" id="quickLinks" aria-label="Atalhos rápidos"></nav>
 
       <section id="eventos" class="panel">
         <div class="panel__head">
@@ -1230,7 +1298,15 @@
       adminPassword: "5solas",
       adminPasswordHash: "a8be719ce804dbd06ea3eb3c9a9dc49feb56cc8248bda78a535af8180c34bb37",
       publicSiteUrl: "https://congresso-igreja.vercel.app",
-      storageKey: "congressoIgrejaInscricoes"
+      storageKey: "congressoIgrejaInscricoes",
+      quickLinks: [
+        { label: "Informativo", icon: "i", href: "#eventos", internal: true },
+        { label: "Localização", icon: "⌖", href: "https://www.google.com/maps/search/?api=1&query=Igreja%20Reformada%20Comunidade%20da%20Cruz" },
+        { label: "YouTube", icon: "▶", href: "https://www.youtube.com/results?search_query=Igreja+Reformada+Comunidade+da+Cruz" },
+        { label: "Agenda", icon: "▦", href: "#eventos", internal: true },
+        { label: "Sobre nós", icon: "✚", href: "#eventos", internal: true },
+        { label: "Playlist", icon: "♫", href: "https://www.youtube.com/results?search_query=Igreja+Reformada+Comunidade+da+Cruz+playlist" }
+      ]
     };
 
     const DEFAULT_EVENT_PLACE = {
@@ -2012,6 +2088,21 @@
 
     function eventCount(eventKey) {
       return eventRecords(eventKey).length;
+    }
+
+    function renderQuickLinks() {
+      const container = $("#quickLinks");
+      if (!container) return;
+      container.innerHTML = (CONFIG.quickLinks || []).map((link) => {
+        const internalAttr = link.internal ? `data-quick-tab="${escapeHtml(link.href.replace("#", ""))}"` : "";
+        const externalAttr = link.internal ? "" : `target="_blank" rel="noopener"`;
+        return `
+          <a class="quick-link" href="${escapeHtml(link.href)}" ${internalAttr} ${externalAttr}>
+            <span class="quick-link__icon" aria-hidden="true">${escapeHtml(link.icon)}</span>
+            <span class="quick-link__label">${escapeHtml(link.label)}</span>
+          </a>
+        `;
+      }).join("");
     }
 
     function eventApproved(record) {
@@ -2916,6 +3007,14 @@
       });
     });
 
+    $("#quickLinks").addEventListener("click", (event) => {
+      const link = event.target.closest("[data-quick-tab]");
+      if (!link) return;
+      event.preventDefault();
+      showTab(link.dataset.quickTab || "eventos");
+      document.querySelector(link.getAttribute("href"))?.scrollIntoView({ behavior: "smooth", block: "start" });
+    });
+
     $("#eventGrid").addEventListener("click", (event) => {
       if (event.target.closest("[data-map-link]")) return;
       const card = event.target.closest("[data-event]");
@@ -3334,6 +3433,7 @@
     }
 
     (async () => {
+      renderQuickLinks();
       renderEventCards();
       loadEventsFromSupabase()
         .then(() => {
