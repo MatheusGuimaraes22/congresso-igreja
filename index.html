@@ -838,7 +838,7 @@
     <div class="wrap">
       <nav class="tabs" aria-label="Áreas da página">
         <button class="tab" type="button" aria-selected="true" data-tab="eventos">Eventos</button>
-        <button class="tab" type="button" aria-selected="false" data-tab="comprovante">Enviar comprovante</button>
+        <button class="tab" type="button" aria-selected="false" data-tab="comprovante">Comprovante de pagamento</button>
         <button class="tab" type="button" aria-selected="false" data-tab="admin">Administração</button>
       </nav>
 
@@ -1008,8 +1008,8 @@
 
       <section id="comprovante" class="panel proof-section" aria-label="Envio de comprovante">
         <div class="panel__head">
-          <h2>Enviar comprovante do banco</h2>
-          <p>No app do banco, toque em Compartilhar comprovante e salve o PDF ou a imagem. Depois anexe o arquivo aqui para conferência da administração.</p>
+          <h2>Comprovante obrigatório para eventos pagos</h2>
+          <p>Para eventos pagos sem confirmação automática, envie o comprovante para a administração conferir o pagamento. No app do banco, toque em Compartilhar comprovante e salve o PDF ou a imagem. Depois anexe o arquivo aqui.</p>
         </div>
 
         <form id="proofForm" class="proof-form">
@@ -1043,7 +1043,7 @@
           </fieldset>
 
           <div class="actions">
-            <button class="btn btn--primary" type="submit">Enviar comprovante do banco</button>
+            <button class="btn btn--primary" type="submit">Enviar comprovante obrigatório</button>
           </div>
           <div class="success" id="proofSuccessBox" role="status" aria-live="polite"></div>
         </form>
