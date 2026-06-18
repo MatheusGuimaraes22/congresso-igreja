@@ -33,13 +33,16 @@ function doGet() {
 
 function handleRegistration(payload) {
   var registration = payload.registration || payload || {};
+  var userEmail = String(registration.email || "").trim().toLowerCase();
 
-  if (!registration.email || !registration.eventName) {
+  if (!userEmail || !registration.eventName) {
     return jsonResponse({
       ok: false,
       error: "Inscricao sem e-mail ou evento."
     });
   }
+
+  registration.email = userEmail;
 
   var calendar = CalendarApp.getCalendarById(CALENDAR_ID);
   var start = buildDate(registration.eventDate, registration.eventStartsAt, 19);
@@ -49,15 +52,17 @@ function handleRegistration(payload) {
   var event = calendar.createEvent(title, start, end, {
     description: buildRegistrationMessage(registration),
     location: registration.eventAddress || "",
-    guests: registration.email,
+    guests: userEmail,
     sendInvites: true
   });
 
   MailApp.sendEmail({
-    to: registration.email,
+    to: userEmail,
+    bcc: ADMIN_EMAIL,
     subject: "Inscricao recebida - " + registration.eventName,
     body: buildUserEmail(registration),
-    name: "Eventos ICC"
+    name: "Eventos ICC",
+    attachments: [buildIcsAttachment(registration, start, end)]
   });
 
   MailApp.sendEmail({
@@ -70,7 +75,8 @@ function handleRegistration(payload) {
   return jsonResponse({
     ok: true,
     type: "registration",
-    eventId: event.getId()
+    eventId: event.getId(),
+    userEmail: userEmail
   });
 }
 
@@ -151,6 +157,9 @@ function buildUserEmail(registration) {
     "Referencia de pagamento: " + (registration.paymentReference || ""),
     "QR Code/validacao: " + (registration.validationLink || ""),
     "",
+    "O convite do evento tambem esta anexado a este e-mail em formato .ics.",
+    "Caso o convite automatico do Google Agenda nao apareca, abra o anexo para adicionar o evento.",
+    "",
     "Guarde o QR Code para apresentar a organizacao."
   ].join("\n");
 }
@@ -168,6 +177,43 @@ function buildAdminRegistrationEmail(registration) {
     "Referencia: " + (registration.paymentReference || ""),
     "Validacao: " + (registration.validationLink || "")
   ].join("\n");
+}
+
+function buildIcsAttachment(registration, start, end) {
+  var uid = (registration.id || Utilities.getUuid()) + "@eventosicc.com";
+  var content = [
+    "BEGIN:VCALENDAR",
+    "VERSION:2.0",
+    "PRODID:-//Eventos ICC//Inscricoes//PT-BR",
+    "CALSCALE:GREGORIAN",
+    "METHOD:REQUEST",
+    "BEGIN:VEVENT",
+    "UID:" + escapeIcs(uid),
+    "DTSTAMP:" + formatIcsDate(new Date()),
+    "DTSTART:" + formatIcsDate(start),
+    "DTEND:" + formatIcsDate(end),
+    "SUMMARY:" + escapeIcs(registration.eventName || "Evento ICC"),
+    "DESCRIPTION:" + escapeIcs(buildRegistrationMessage(registration)),
+    "LOCATION:" + escapeIcs(registration.eventAddress || ""),
+    "ORGANIZER;CN=Eventos ICC:MAILTO:" + ADMIN_EMAIL,
+    "ATTENDEE;CN=" + escapeIcs(registration.fullName || "Inscrito") + ";ROLE=REQ-PARTICIPANT;PARTSTAT=NEEDS-ACTION;RSVP=TRUE:MAILTO:" + registration.email,
+    "END:VEVENT",
+    "END:VCALENDAR"
+  ].join("\r\n");
+
+  return Utilities.newBlob(content, "text/calendar", "convite-" + (registration.id || "evento") + ".ics");
+}
+
+function formatIcsDate(date) {
+  return Utilities.formatDate(date, "UTC", "yyyyMMdd'T'HHmmss'Z'");
+}
+
+function escapeIcs(value) {
+  return String(value || "")
+    .replace(/\\/g, "\\\\")
+    .replace(/\n/g, "\\n")
+    .replace(/,/g, "\\,")
+    .replace(/;/g, "\\;");
 }
 
 function buildAdminEventEmail(eventConfig, action) {
