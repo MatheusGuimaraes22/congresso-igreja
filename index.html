@@ -1489,12 +1489,16 @@
       return data.events || [];
     }
 
-    async function saveEventToApi(event) {
+    async function saveEventToApi(event, options = {}) {
       if (!CONFIG.eventsApiUrl) return { ok: false, skipped: true };
       const response = await fetch(CONFIG.eventsApiUrl, {
         method: "POST",
         headers: { "Content-Type": "application/json", Accept: "application/json" },
-        body: JSON.stringify({ event })
+        body: JSON.stringify({
+          event,
+          notify: options.notify === true,
+          action: options.action || "created"
+        })
       });
       const data = await response.json();
       if (!response.ok || !data.ok) {
@@ -1559,9 +1563,9 @@
       loadEventsLocal();
     }
 
-    async function syncEventsToSupabase(events) {
+    async function syncEventsToSupabase(events, options = {}) {
       if (events.length === 1) {
-        const apiResult = await saveEventToApi(events[0]);
+        const apiResult = await saveEventToApi(events[0], options);
         if (apiResult.ok) return apiResult;
       }
       const client = await getSupabaseClient();
@@ -3142,7 +3146,10 @@
 
       let result;
       try {
-        result = await syncEventsToSupabase([newEvent]);
+        result = await syncEventsToSupabase([newEvent], {
+          notify: true,
+          action: existingIndex >= 0 ? "updated" : "created"
+        });
       } catch (error) {
         result = { ok: false, error: error.message };
       }

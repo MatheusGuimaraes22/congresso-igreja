@@ -1,61 +1,123 @@
-const CALENDAR_ID = "primary";
-const ADMIN_EMAIL = "eventosiccruz@gmail.com";
+var CALENDAR_ID = "primary";
+var ADMIN_EMAIL = "eventosiccruz@gmail.com";
 
 function doPost(e) {
   try {
-    const payload = JSON.parse((e && e.postData && e.postData.contents) || "{}");
-    const registration = payload.registration || {};
+    var payloadText = "{}";
 
-    if (!registration.email || !registration.eventName) {
-      return jsonResponse({ ok: false, error: "Inscricao sem e-mail ou evento." });
+    if (e && e.postData && e.postData.contents) {
+      payloadText = e.postData.contents;
     }
 
-    const calendar = CalendarApp.getCalendarById(CALENDAR_ID);
-    const start = buildDate(registration.eventDate, registration.eventStartsAt, 19);
-    const end = buildDate(registration.eventDate, registration.eventEndsAt, 21);
-    const title = registration.eventName + " - " + (registration.fullName || "Inscrito");
-    const description = buildMessage(registration);
+    var payload = JSON.parse(payloadText);
 
-    const event = calendar.createEvent(title, start, end, {
-      description: description,
-      location: registration.eventAddress || "",
-      guests: registration.email,
-      sendInvites: true
-    });
+    if (payload.eventConfig) {
+      return handleEventConfig(payload);
+    }
 
-    MailApp.sendEmail({
-      to: registration.email,
-      subject: "Inscricao recebida - " + registration.eventName,
-      body: buildUserEmail(registration),
-      name: "Eventos ICC"
-    });
-
-    MailApp.sendEmail({
-      to: ADMIN_EMAIL,
-      subject: "Nova inscricao - " + registration.eventName,
-      body: buildAdminEmail(registration),
-      name: "Eventos ICC"
-    });
-
-    return jsonResponse({
-      ok: true,
-      eventId: event.getId()
-    });
+    return handleRegistration(payload);
   } catch (error) {
-    return jsonResponse({ ok: false, error: error.message });
+    return jsonResponse({
+      ok: false,
+      error: String(error && error.message ? error.message : error)
+    });
   }
 }
 
-function buildDate(dateValue, timeValue, fallbackHour) {
-  const timeZone = Session.getScriptTimeZone();
-  const date = dateValue || Utilities.formatDate(new Date(), timeZone, "yyyy-MM-dd");
-  const match = String(timeValue || "").match(/(\d{1,2})(?::|h)?(\d{2})?/);
-  const hour = match ? Number(match[1]) : fallbackHour;
-  const minute = match && match[2] ? Number(match[2]) : 0;
-  return new Date(date + "T" + String(hour).padStart(2, "0") + ":" + String(minute).padStart(2, "0") + ":00");
+function doGet() {
+  return jsonResponse({
+    ok: true,
+    message: "Apps Script Eventos ICC ativo."
+  });
 }
 
-function buildMessage(registration) {
+function handleRegistration(payload) {
+  var registration = payload.registration || payload || {};
+
+  if (!registration.email || !registration.eventName) {
+    return jsonResponse({
+      ok: false,
+      error: "Inscricao sem e-mail ou evento."
+    });
+  }
+
+  var calendar = CalendarApp.getCalendarById(CALENDAR_ID);
+  var start = buildDate(registration.eventDate, registration.eventStartsAt, 19);
+  var end = buildDate(registration.eventDate, registration.eventEndsAt, 21);
+  var title = registration.eventName + " - " + (registration.fullName || "Inscrito");
+
+  var event = calendar.createEvent(title, start, end, {
+    description: buildRegistrationMessage(registration),
+    location: registration.eventAddress || "",
+    guests: registration.email,
+    sendInvites: true
+  });
+
+  MailApp.sendEmail({
+    to: registration.email,
+    subject: "Inscricao recebida - " + registration.eventName,
+    body: buildUserEmail(registration),
+    name: "Eventos ICC"
+  });
+
+  MailApp.sendEmail({
+    to: ADMIN_EMAIL,
+    subject: "Nova inscricao - " + registration.eventName,
+    body: buildAdminRegistrationEmail(registration),
+    name: "Eventos ICC"
+  });
+
+  return jsonResponse({
+    ok: true,
+    type: "registration",
+    eventId: event.getId()
+  });
+}
+
+function handleEventConfig(payload) {
+  var eventConfig = payload.eventConfig || {};
+  var action = payload.action === "updated" ? "atualizado" : "criado";
+
+  if (!eventConfig.name) {
+    return jsonResponse({
+      ok: false,
+      error: "Evento sem nome."
+    });
+  }
+
+  MailApp.sendEmail({
+    to: ADMIN_EMAIL,
+    subject: "Evento " + action + " - " + eventConfig.name,
+    body: buildAdminEventEmail(eventConfig, action),
+    name: "Eventos ICC"
+  });
+
+  return jsonResponse({
+    ok: true,
+    type: "event",
+    action: action
+  });
+}
+
+function buildDate(dateValue, timeValue, fallbackHour) {
+  var timeZone = Session.getScriptTimeZone();
+  var date = dateValue || Utilities.formatDate(new Date(), timeZone, "yyyy-MM-dd");
+  var text = String(timeValue || "");
+  var match = text.match(/(\d{1,2})(?::|h)?(\d{2})?/);
+  var hour = match ? Number(match[1]) : fallbackHour;
+  var minute = match && match[2] ? Number(match[2]) : 0;
+
+  return new Date(
+    date +
+      "T" +
+      String(hour).padStart(2, "0") +
+      ":" +
+      String(minute).padStart(2, "0") +
+      ":00"
+  );
+}
+
+function buildRegistrationMessage(registration) {
   return [
     registration.eventDescription || "",
     "",
@@ -77,7 +139,10 @@ function buildUserEmail(registration) {
     "Sua inscricao em " + (registration.eventName || "Evento ICC") + " foi recebida.",
     "",
     "Data: " + (registration.eventDate || "A confirmar"),
-    "Horario: " + (registration.eventStartsAt || "A confirmar") + " ate " + (registration.eventEndsAt || "A confirmar"),
+    "Horario: " +
+      (registration.eventStartsAt || "A confirmar") +
+      " ate " +
+      (registration.eventEndsAt || "A confirmar"),
     "Local: " + (registration.eventAddress || "A confirmar"),
     "Maps: " + (registration.eventMapsUrl || ""),
     "",
@@ -90,7 +155,7 @@ function buildUserEmail(registration) {
   ].join("\n");
 }
 
-function buildAdminEmail(registration) {
+function buildAdminRegistrationEmail(registration) {
   return [
     "Nova inscricao recebida.",
     "",
@@ -105,8 +170,27 @@ function buildAdminEmail(registration) {
   ].join("\n");
 }
 
+function buildAdminEventEmail(eventConfig, action) {
+  return [
+    "Evento " + action + " pela administracao.",
+    "",
+    "Nome: " + (eventConfig.name || ""),
+    "Tipo: " + (eventConfig.paid ? "Pago" : "Gratuito"),
+    "Vagas: " + (eventConfig.capacity || "450"),
+    "Data: " + (eventConfig.date || "A confirmar"),
+    "Inicio: " + (eventConfig.startsAt || "A confirmar"),
+    "Termino: " + (eventConfig.endsAt || "A confirmar"),
+    "Publico: " + (eventConfig.audience || ""),
+    "Endereco: " + (eventConfig.address || ""),
+    "Maps: " + (eventConfig.mapsUrl || ""),
+    "",
+    "Descricao:",
+    eventConfig.description || ""
+  ].join("\n");
+}
+
 function jsonResponse(body) {
-  return ContentService
-    .createTextOutput(JSON.stringify(body))
-    .setMimeType(ContentService.MimeType.JSON);
+  return ContentService.createTextOutput(JSON.stringify(body)).setMimeType(
+    ContentService.MimeType.JSON
+  );
 }

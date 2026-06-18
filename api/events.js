@@ -1,6 +1,7 @@
 const SUPABASE_URL = process.env.SUPABASE_URL || "https://fzufcfefcikcklbkuerf.supabase.co";
 const SUPABASE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABASE_ANON_KEY || "sb_publishable__7eNcEjFykry9wBXn8tpzA_evGhJd9_";
 const EVENTS_TABLE = process.env.SUPABASE_EVENTS_TABLE || "eventos_config";
+const GOOGLE_APPS_SCRIPT_URL = process.env.GOOGLE_APPS_SCRIPT_URL || "https://script.google.com/macros/s/AKfycbwTJttuw03Uq2x6ZUSOvL59ATCDoM4S-qiStO4bwIedZvSItipMfFnz-cImqIN3fweb/exec";
 const https = require("node:https");
 
 function json(res, status, body) {
@@ -72,6 +73,36 @@ function fromRow(row) {
     startsAt: row.starts_at,
     endsAt: row.ends_at
   });
+}
+
+async function notifyEventChange(eventConfig, action) {
+  if (!GOOGLE_APPS_SCRIPT_URL || !eventConfig) {
+    return { ok: false, skipped: true };
+  }
+  try {
+    const response = await requestJson(GOOGLE_APPS_SCRIPT_URL, {
+      method: "POST",
+      headers: { "Content-Type": "text/plain;charset=utf-8" },
+      body: JSON.stringify({
+        event: action === "updated" ? "event.updated" : "event.created",
+        action: action === "updated" ? "updated" : "created",
+        eventConfig
+      })
+    });
+    let body = null;
+    try {
+      body = response.text ? JSON.parse(response.text) : null;
+    } catch (_) {
+      body = response.text || null;
+    }
+    return {
+      ok: response.status >= 200 && response.status < 400 && (!body || body.ok !== false),
+      status: response.status,
+      body
+    };
+  } catch (error) {
+    return { ok: false, error: error.message };
+  }
 }
 
 async function supabase(path, options = {}) {
@@ -192,12 +223,17 @@ module.exports = async function handler(req, res) {
 
     if (req.method === "POST" || req.method === "PUT" || req.method === "PATCH") {
       const event = normalizeEvent(req.body && (req.body.event || req.body));
+      const action = req.body && req.body.action === "updated" ? "updated" : "created";
       const rows = await supabase(`${EVENTS_TABLE}?on_conflict=key`, {
         method: "POST",
         headers: { Prefer: "resolution=merge-duplicates,return=representation" },
         body: JSON.stringify(toRow(event))
       });
-      return json(res, 200, { ok: true, event: fromRow(rows[0]) });
+      const savedEvent = fromRow(rows[0]);
+      const notification = req.body && req.body.notify
+        ? await notifyEventChange(savedEvent, action)
+        : { ok: false, skipped: true };
+      return json(res, 200, { ok: true, event: savedEvent, notification });
     }
 
     if (req.method === "DELETE") {
