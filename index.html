@@ -1222,6 +1222,7 @@
       supabaseAdminUsersTable: "admin_users",
       supabaseEventsTable: "eventos_config",
       supabaseProofBucket: "comprovantes",
+      eventsApiUrl: "/api/events",
       adminEmail: "administracao@igreja.com",
       adminUser: "secretaria",
       adminPassword: "5solas",
@@ -1460,7 +1461,7 @@
     }
 
     function applyLoadedEvents(data) {
-      const rows = (data || []).map(rowToEvent);
+      const rows = (data || []).map((item) => item && (item.mapsUrl || item.startsAt) ? normalizeEvent(item) : rowToEvent(item));
       if (rows.length) {
         const merged = mergeEvents(DEFAULT_EVENTS, rows);
         EVENTS.splice(0, EVENTS.length, ...merged);
@@ -1473,10 +1474,59 @@
       saveEventsLocal();
     }
 
+    async function fetchEventsFromApi() {
+      if (!CONFIG.eventsApiUrl) return null;
+      const response = await fetch(`${CONFIG.eventsApiUrl}?t=${Date.now()}`, {
+        headers: { Accept: "application/json" },
+        cache: "no-store"
+      });
+      const data = await response.json();
+      if (!response.ok || !data.ok) {
+        throw new Error(data.error || `API de eventos ${response.status}`);
+      }
+      return data.events || [];
+    }
+
+    async function saveEventToApi(event) {
+      if (!CONFIG.eventsApiUrl) return { ok: false, skipped: true };
+      const response = await fetch(CONFIG.eventsApiUrl, {
+        method: "POST",
+        headers: { "Content-Type": "application/json", Accept: "application/json" },
+        body: JSON.stringify({ event })
+      });
+      const data = await response.json();
+      if (!response.ok || !data.ok) {
+        return { ok: false, error: data.error || `API de eventos ${response.status}` };
+      }
+      return { ok: true, event: data.event };
+    }
+
+    async function deleteEventFromApi(eventKey) {
+      if (!CONFIG.eventsApiUrl || !eventKey) return { ok: false, skipped: true };
+      const response = await fetch(`${CONFIG.eventsApiUrl}?key=${encodeURIComponent(eventKey)}`, {
+        method: "DELETE",
+        headers: { Accept: "application/json" }
+      });
+      const data = await response.json();
+      if (!response.ok || !data.ok) {
+        return { ok: false, error: data.error || `API de eventos ${response.status}` };
+      }
+      return { ok: true };
+    }
+
     async function loadEventsFromSupabase() {
       if (!CONFIG.supabaseEventsTable) {
         loadEventsLocal();
         return;
+      }
+
+      try {
+        const events = await fetchEventsFromApi();
+        applyLoadedEvents(events || []);
+        renderEventCards();
+        return;
+      } catch (error) {
+        console.warn("Falha ao carregar eventos pela API:", error.message);
       }
 
       const supabaseFallback = (async () => {
@@ -1508,6 +1558,10 @@
     }
 
     async function syncEventsToSupabase(events) {
+      if (events.length === 1) {
+        const apiResult = await saveEventToApi(events[0]);
+        if (apiResult.ok) return apiResult;
+      }
       const client = await getSupabaseClient();
       if (!client || !CONFIG.supabaseEventsTable) return { ok: false, skipped: true };
       const { error } = await client
@@ -1521,6 +1575,8 @@
     }
 
     async function deleteEventFromSupabase(eventKey) {
+      const apiResult = await deleteEventFromApi(eventKey);
+      if (apiResult.ok) return;
       const client = await getSupabaseClient();
       if (!client || !CONFIG.supabaseEventsTable) return;
       const { error } = await client.from(CONFIG.supabaseEventsTable).update({ active: false }).eq("key", eventKey);
