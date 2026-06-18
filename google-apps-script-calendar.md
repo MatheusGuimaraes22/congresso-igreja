@@ -2,6 +2,8 @@
 
 Use o arquivo `google-apps-script-calendar.gs` em um projeto do Google Apps Script vinculado ao e-mail/calendario da igreja.
 
+Para que os e-mails e convites de agenda saiam pelo e-mail da igreja, crie e implante o Apps Script logado como `eventosiccruz@gmail.com`.
+
 ## O que ele faz
 
 - Cria um evento na Google Agenda da igreja.
@@ -32,7 +34,7 @@ No Apps Script:
 
 | Propriedade | Valor |
 | --- | --- |
-| `ADMIN_EMAIL` | e-mail que deve receber aviso de novas inscricoes |
+| `ADMIN_EMAIL` | `eventosiccruz@gmail.com` |
 
 O e-mail para o inscrito usa o e-mail da conta que implantou o Apps Script.
 

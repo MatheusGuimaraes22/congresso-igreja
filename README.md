@@ -64,7 +64,7 @@ const CONFIG = {
   supabaseAnonKey: "",
   supabaseTable: "congresso_inscricoes",
   supabaseProofBucket: "comprovantes",
-  adminEmail: "administracao@igreja.com",
+  adminEmail: "eventosiccruz@gmail.com",
   adminUser: "secretaria",
   adminPassword: "5solas",
   storageKey: "congressoIgrejaInscricoes"
