@@ -2666,7 +2666,7 @@
           ${renderAdminTable(eventRows)}
           <div class="admin-toolbar">
             <div class="actions">
-              <button class="btn btn--ghost" type="button" data-admin-tool="export">Exportar lista do evento</button>
+              <button class="btn btn--ghost" type="button" data-admin-tool="export">Exportar planilha do evento</button>
               <button class="btn btn--ghost" type="button" data-admin-tool="import">Importar pagamentos do evento</button>
               <button class="btn btn--ghost" type="button" data-admin-tool="logout">Sair</button>
               <button class="btn btn--danger" type="button" data-admin-tool="clear">Apagar lista do evento</button>
@@ -2681,45 +2681,83 @@
       if (!records.length) return;
       const event = getEvent(eventKey);
 
-      const headers = [
-        "id", "evento", "data", "nome", "email", "celular", "cpf", "igreja", "cep", "endereco",
-        "precisa_carona", "oferece_carona", "vagas", "forma_pagamento", "status_pagamento", "referencia_pagamento", "valor_comprovante", "id_transacao", "ocr_status", "ocr_resultado", "fonte_confirmacao", "comprovante", "integracao"
+      const columns = [
+        ["Código", (record) => record.id],
+        ["Nome", (record) => record.fullName],
+        ["E-mail", (record) => record.email],
+        ["Celular", (record) => record.phone],
+        ["CPF", (record) => record.cpf],
+        ["Igreja", (record) => record.church],
+        ["Endereço", (record) => buildAddress(record)],
+        ["Carona", (record) => `Precisa: ${record.needsRide || "Não"} | Oferece: ${record.hasCar || "Não"}${record.seats ? ` (${record.seats} vaga(s))` : ""}`],
+        ["Pagamento", (record) => record.paymentMethod],
+        ["Status", (record) => record.paymentStatus],
+        ["Referência", (record) => record.paymentReference],
+        ["Valor do comprovante", (record) => record.proofAmount],
+        ["ID/autenticação", (record) => record.proofTransactionId],
+        ["OCR", (record) => [record.proofOcrStatus, record.proofOcrMatches].filter(Boolean).join(" - ")],
+        ["Comprovante", (record) => record.paymentProof && (record.paymentProof.supabasePublicUrl || record.paymentProof.name)],
+        ["Inscrição feita em", (record) => formatExportDate(record.createdAt)]
       ];
-      const rows = records.map((record) => [
-        record.id,
-        record.eventName || (getEvent(getRecordEventKey(record)) || {}).name,
-        record.createdAt,
-        record.fullName,
-        record.email,
-        record.phone,
-        record.cpf,
-        record.church,
-        record.cep,
-        buildAddress(record),
-        record.needsRide,
-        record.hasCar,
-        record.seats,
-        record.paymentMethod,
-        record.paymentStatus,
-        record.paymentReference,
-        record.proofAmount,
-        record.proofTransactionId,
-        record.proofOcrStatus,
-        record.proofOcrMatches,
-        record.paymentConfirmationSource,
-        record.paymentProof && record.paymentProof.name,
-        record.integrationStatus
-      ]);
 
-      const csv = [headers, ...rows]
-        .map((row) => row.map((cell) => `"${String(cell || "").replace(/"/g, '""')}"`).join(","))
-        .join("\n");
-      const blob = new Blob([csv], { type: "text/csv;charset=utf-8" });
+      const statusClass = (status) => {
+        if (status === "Pago") return "paid";
+        if (status === "Comprovante compatível" || status === "Em análise") return "review";
+        return "pending";
+      };
+
+      const tableRows = records.map((record) => `
+        <tr>
+          ${columns.map(([title, getter]) => {
+            const value = getter(record);
+            const className = title === "Status" ? ` class="${statusClass(record.paymentStatus)}"` : "";
+            return `<td${className}>${escapeHtml(value || "")}</td>`;
+          }).join("")}
+        </tr>
+      `).join("");
+
+      const html = `<!doctype html>
+        <html>
+          <head>
+            <meta charset="utf-8">
+            <style>
+              body { font-family: Arial, sans-serif; color: #1f2a2e; }
+              h1 { font-size: 22px; margin: 0 0 6px; }
+              .meta { color: #5f6964; margin: 0 0 18px; }
+              table { border-collapse: collapse; width: 100%; }
+              th { background: #5a2f18; color: #fff; font-weight: 700; text-align: left; }
+              th, td { border: 1px solid #d8c7b5; padding: 8px 10px; vertical-align: top; }
+              tr:nth-child(even) td { background: #f7f0e8; }
+              .paid { background: #dff3e8; color: #12613a; font-weight: 700; }
+              .pending { background: #fff1d7; color: #8a5200; font-weight: 700; }
+              .review { background: #e8f0fb; color: #315d88; font-weight: 700; }
+            </style>
+          </head>
+          <body>
+            <h1>${escapeHtml(event ? event.name : "Evento")}</h1>
+            <p class="meta">Lista de inscritos exportada em ${escapeHtml(formatExportDate(new Date().toISOString()))}. Total: ${records.length} inscrito(s).</p>
+            <table>
+              <thead>
+                <tr>${columns.map(([title]) => `<th>${escapeHtml(title)}</th>`).join("")}</tr>
+              </thead>
+              <tbody>${tableRows}</tbody>
+            </table>
+          </body>
+        </html>`;
+
+      const blob = new Blob([html], { type: "application/vnd.ms-excel;charset=utf-8" });
       const link = document.createElement("a");
       link.href = URL.createObjectURL(blob);
-      link.download = `inscricoes-${slugify(event ? event.name : "evento")}.csv`;
+      link.download = `inscricoes-${slugify(event ? event.name : "evento")}.xls`;
       link.click();
       URL.revokeObjectURL(link.href);
+    }
+
+    function formatExportDate(value) {
+      if (!value) return "";
+      const date = value instanceof Date ? value : new Date(value);
+      if (Number.isNaN(date.getTime())) return String(value);
+      return date.toLocaleString("pt-BR");
     }
 
     function normalizePaymentText(text) {
