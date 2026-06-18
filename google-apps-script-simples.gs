@@ -72,11 +72,14 @@ function handleRegistration(payload) {
     name: "Eventos ICC"
   });
 
+  var whatsapp = sendWhatsAppConfirmation(registration);
+
   return jsonResponse({
     ok: true,
     type: "registration",
     eventId: event.getId(),
-    userEmail: userEmail
+    userEmail: userEmail,
+    whatsapp: whatsapp
   });
 }
 
@@ -177,6 +180,128 @@ function buildAdminRegistrationEmail(registration) {
     "Referencia: " + (registration.paymentReference || ""),
     "Validacao: " + (registration.validationLink || "")
   ].join("\n");
+}
+
+function sendWhatsAppConfirmation(registration) {
+  var phone = normalizeBrazilPhone(registration.phone || "");
+  if (!phone) {
+    return {
+      ok: false,
+      skipped: true,
+      reason: "Telefone nao informado."
+    };
+  }
+
+  var props = PropertiesService.getScriptProperties();
+  var token = props.getProperty("WHATSAPP_TOKEN");
+  var phoneNumberId = props.getProperty("WHATSAPP_PHONE_NUMBER_ID");
+  var templateName = props.getProperty("WHATSAPP_TEMPLATE_NAME") || "";
+  var languageCode = props.getProperty("WHATSAPP_TEMPLATE_LANGUAGE") || "pt_BR";
+
+  if (!token || !phoneNumberId) {
+    return {
+      ok: false,
+      skipped: true,
+      reason: "Credenciais do WhatsApp nao configuradas."
+    };
+  }
+
+  var payload = templateName
+    ? buildWhatsAppTemplatePayload(phone, templateName, languageCode, registration)
+    : buildWhatsAppTextPayload(phone, registration);
+
+  try {
+    var response = UrlFetchApp.fetch("https://graph.facebook.com/v20.0/" + phoneNumberId + "/messages", {
+      method: "post",
+      contentType: "application/json",
+      headers: {
+        Authorization: "Bearer " + token
+      },
+      payload: JSON.stringify(payload),
+      muteHttpExceptions: true
+    });
+
+    var status = response.getResponseCode();
+    var body = response.getContentText();
+    var ok = status >= 200 && status < 300;
+
+    if (!ok) {
+      MailApp.sendEmail({
+        to: ADMIN_EMAIL,
+        subject: "Falha no WhatsApp - " + (registration.eventName || "Evento ICC"),
+        body: "Nao foi possivel enviar WhatsApp para " + phone + ".\n\nStatus: " + status + "\nResposta: " + body,
+        name: "Eventos ICC"
+      });
+    }
+
+    return {
+      ok: ok,
+      status: status,
+      response: body
+    };
+  } catch (error) {
+    return {
+      ok: false,
+      error: String(error && error.message ? error.message : error)
+    };
+  }
+}
+
+function buildWhatsAppTextPayload(phone, registration) {
+  return {
+    messaging_product: "whatsapp",
+    to: phone,
+    type: "text",
+    text: {
+      preview_url: true,
+      body: buildWhatsAppText(registration)
+    }
+  };
+}
+
+function buildWhatsAppTemplatePayload(phone, templateName, languageCode, registration) {
+  return {
+    messaging_product: "whatsapp",
+    to: phone,
+    type: "template",
+    template: {
+      name: templateName,
+      language: {
+        code: languageCode
+      },
+      components: [
+        {
+          type: "body",
+          parameters: [
+            { type: "text", text: registration.fullName || "inscrito" },
+            { type: "text", text: registration.eventName || "Evento ICC" },
+            { type: "text", text: registration.id || "" },
+            { type: "text", text: registration.validationLink || "" }
+          ]
+        }
+      ]
+    }
+  };
+}
+
+function buildWhatsAppText(registration) {
+  return [
+    "Ola, " + (registration.fullName || "inscrito") + ".",
+    "Sua inscricao em " + (registration.eventName || "Evento ICC") + " foi recebida.",
+    "Codigo: " + (registration.id || ""),
+    "Status de pagamento: " + (registration.paymentStatus || ""),
+    "Validacao/QR Code: " + (registration.validationLink || ""),
+    "",
+    "Guarde este link para apresentar a organizacao."
+  ].join("\n");
+}
+
+function normalizeBrazilPhone(value) {
+  var digits = String(value || "").replace(/\D/g, "");
+  if (!digits) return "";
+  if (digits.length === 10 || digits.length === 11) return "55" + digits;
+  if (digits.length === 12 || digits.length === 13) return digits;
+  return "";
 }
 
 function buildIcsAttachment(registration, start, end) {
