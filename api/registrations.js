@@ -3,7 +3,7 @@ const https = require("node:https");
 const SUPABASE_URL = process.env.SUPABASE_URL || "https://fzufcfefcikcklbkuerf.supabase.co";
 const SUPABASE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABASE_ANON_KEY || "sb_publishable__7eNcEjFykry9wBXn8tpzA_evGhJd9_";
 const REGISTRATIONS_TABLE = process.env.SUPABASE_REGISTRATIONS_TABLE || "congresso_inscricoes";
-const GOOGLE_APPS_SCRIPT_URL = process.env.GOOGLE_APPS_SCRIPT_URL || "https://script.google.com/macros/s/AKfycbzIoQ-WAZy8vhgFBY3fey-opV7HTGk4_3KwNucZ5WaAJxN24BKZvm9kBkShlavuv6qQ/exec";
+const GOOGLE_APPS_SCRIPT_URL = process.env.GOOGLE_APPS_SCRIPT_URL || "https://script.google.com/macros/s/AKfycbx-R8KyE-Sw2Tg7wgW-0q_Ltnlqpa54miHgQRArRnDAosPdkJAbYYZwr22C9TMV6MY5/exec";
 
 function json(res, status, body) {
   res.setHeader("Content-Type", "application/json; charset=utf-8");
