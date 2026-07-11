@@ -106,28 +106,36 @@ async function notifyEventChange(eventConfig, action) {
 }
 
 async function supabase(path, options = {}) {
-  const response = await requestJson(`${SUPABASE_URL.replace(/\/$/, "")}/rest/v1/${path}`, {
-    method: options.method || "GET",
-    headers: {
-      apikey: SUPABASE_KEY,
-      Authorization: `Bearer ${SUPABASE_KEY}`,
-      "Content-Type": "application/json",
-      Prefer: "return=representation",
-      ...(options.headers || {})
-    },
-    body: options.body
-  });
+  try {
+    const response = await requestJson(`${SUPABASE_URL.replace(/\/$/, "")}/rest/v1/${path}`, {
+      method: options.method || "GET",
+      headers: {
+        apikey: SUPABASE_KEY,
+        Authorization: `Bearer ${SUPABASE_KEY}`,
+        "Content-Type": "application/json",
+        Prefer: "return=representation",
+        ...(options.headers || {})
+      },
+      body: options.body
+    });
 
-  const text = response.text;
-  const data = text ? JSON.parse(text) : null;
-  if (response.status < 200 || response.status >= 300) {
-    const message = data && (data.message || data.error) ? data.message || data.error : `Supabase ${response.status}`;
-    const error = new Error(message);
-    error.status = response.status;
-    error.details = data;
-    throw error;
+    const text = response.text;
+    const data = text ? JSON.parse(text) : null;
+    if (response.status < 200 || response.status >= 300) {
+      const message = data && (data.message || data.error) ? data.message || data.error : `Supabase ${response.status}`;
+      const error = new Error(message);
+      error.status = response.status;
+      error.details = data;
+      throw error;
+    }
+    return data;
+  } catch (error) {
+    const message = error && error.message ? error.message : "Nao foi possivel acessar o Supabase.";
+    const wrapped = new Error(`Falha no Supabase: ${message}`);
+    wrapped.status = error.status || 502;
+    wrapped.details = error.details || { supabaseUrl: SUPABASE_URL, table: EVENTS_TABLE };
+    throw wrapped;
   }
-  return data;
 }
 
 function requestJson(url, options = {}) {
@@ -251,7 +259,7 @@ module.exports = async function handler(req, res) {
   } catch (error) {
     return json(res, error.status || 500, {
       ok: false,
-      error: error.message || "Erro interno.",
+      error: error.message || "Nao foi possivel acessar o backend.",
       details: error.details || null
     });
   }

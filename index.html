@@ -1305,7 +1305,7 @@
       adminUser: "secretaria",
       adminPassword: "5solas",
       adminPasswordHash: "a8be719ce804dbd06ea3eb3c9a9dc49feb56cc8248bda78a535af8180c34bb37",
-      publicSiteUrl: "https://congresso-igreja.vercel.app",
+      publicSiteUrl: "https://eventosicc.vercel.app",
       storageKey: "congressoIgrejaInscricoes",
       quickLinks: [
         { label: "Instagram", icon: "instagram", href: "https://www.instagram.com/igrejacomunidadedacruz?utm_source=ig_web_button_share_sheet&igsh=ZDNlZDc0MzIxNw==" },
@@ -1546,6 +1546,24 @@
       return response.json();
     }
 
+    async function readJsonResponse(response, label) {
+      const text = await response.text();
+      if (!text) {
+        return {
+          ok: false,
+          error: `${label} respondeu sem detalhes. Verifique se o Supabase esta ativo e se as variaveis da Vercel estao corretas.`
+        };
+      }
+      try {
+        return JSON.parse(text);
+      } catch {
+        return {
+          ok: false,
+          error: `${label} respondeu em formato invalido.`
+        };
+      }
+    }
+
     function applyLoadedEvents(data) {
       const rows = (data || []).map((item) => item && (item.mapsUrl || item.startsAt) ? normalizeEvent(item) : rowToEvent(item));
       if (rows.length) {
@@ -1565,8 +1583,10 @@
       const response = await fetch(`${CONFIG.eventsApiUrl}?t=${Date.now()}`, {
         headers: { Accept: "application/json" },
         cache: "no-store"
+      }).catch((error) => {
+        throw new Error(`API de eventos indisponível: ${error.message}`);
       });
-      const data = await response.json();
+      const data = await readJsonResponse(response, "API de eventos");
       if (!response.ok || !data.ok) {
         throw new Error(data.error || `API de eventos ${response.status}`);
       }
@@ -1583,8 +1603,10 @@
           notify: options.notify === true,
           action: options.action || "created"
         })
+      }).catch((error) => {
+        throw new Error(`API de eventos indisponível: ${error.message}`);
       });
-      const data = await response.json();
+      const data = await readJsonResponse(response, "API de eventos");
       if (!response.ok || !data.ok) {
         return { ok: false, error: data.error || `API de eventos ${response.status}` };
       }
@@ -1596,8 +1618,10 @@
       const response = await fetch(`${CONFIG.eventsApiUrl}?key=${encodeURIComponent(eventKey)}`, {
         method: "DELETE",
         headers: { Accept: "application/json" }
+      }).catch((error) => {
+        throw new Error(`API de eventos indisponível: ${error.message}`);
       });
-      const data = await response.json();
+      const data = await readJsonResponse(response, "API de eventos");
       if (!response.ok || !data.ok) {
         return { ok: false, error: data.error || `API de eventos ${response.status}` };
       }
