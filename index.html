@@ -2478,6 +2478,16 @@
       showTab("inscricao");
     }
 
+    function openEventRegistration(eventKey, options = {}) {
+      const event = getEvent(eventKey);
+      if (!event) return false;
+      selectEvent(event.key);
+      if (options.updateUrl !== false) {
+        window.history.pushState({}, "", makeEventRegistrationUrl(event.key));
+      }
+      return true;
+    }
+
     function makeEventRegistrationUrl(eventKey) {
       const url = new URL(window.location.href);
       url.search = "";
@@ -3215,10 +3225,7 @@
       const params = new URLSearchParams(window.location.search);
       const eventKey = params.get("evento");
       if (!eventKey) return false;
-      const event = getEvent(eventKey);
-      if (!event) return false;
-      selectEvent(event.key);
-      return true;
+      return openEventRegistration(eventKey, { updateUrl: false });
     }
 
     async function applyValidationFromUrl() {
@@ -3320,7 +3327,7 @@
       if (event.target.closest(".event-card__slides")) return;
       const card = event.target.closest("[data-event]");
       if (!card || card.getAttribute("aria-disabled") === "true") return;
-      window.location.href = makeEventRegistrationUrl(card.dataset.event);
+      openEventRegistration(card.dataset.event);
     });
 
     $("#eventGrid").addEventListener("keydown", (event) => {
@@ -3328,7 +3335,7 @@
       const card = event.target.closest("[data-event]");
       if (!card || card.getAttribute("aria-disabled") === "true") return;
       event.preventDefault();
-      window.location.href = makeEventRegistrationUrl(card.dataset.event);
+      openEventRegistration(card.dataset.event);
     });
 
     form.addEventListener("invalid", () => {
@@ -3789,12 +3796,10 @@
     (async () => {
       renderQuickLinks();
       renderEventCards();
-      loadEventsFromSupabase()
-        .then(() => {
-          renderEventCards();
-          renderAdmin();
-        })
+      await loadEventsFromSupabase()
         .catch((error) => console.warn("Falha ao inicializar eventos:", error.message));
+      renderEventCards();
+      renderAdmin();
       await Promise.race([
         loadRecordsFromSupabase().catch((error) => console.warn("Falha ao inicializar inscritos:", error.message)),
         wait(1200)
