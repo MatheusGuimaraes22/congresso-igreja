@@ -219,6 +219,22 @@
       transition: transform .16s ease, box-shadow .16s ease, border-color .16s ease, background .16s ease;
     }
 
+    .event-card__image {
+      width: 100%;
+      aspect-ratio: 16 / 9;
+      overflow: hidden;
+      border-radius: 6px;
+      border: 1px solid var(--line);
+      background: #f3eadc;
+    }
+
+    .event-card__image img {
+      display: block;
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+    }
+
     .event-card[data-event] {
       cursor: pointer;
     }
@@ -277,6 +293,42 @@
       border: 1px solid var(--line);
       border-radius: 8px;
       background: #fffaf2;
+    }
+
+    .event-info__image {
+      width: min(360px, 100%);
+      aspect-ratio: 16 / 9;
+      overflow: hidden;
+      border-radius: 6px;
+      border: 1px solid var(--line);
+      background: #f3eadc;
+    }
+
+    .event-info__image img {
+      display: block;
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+    }
+
+    .event-image-preview {
+      display: none;
+      gap: 8px;
+      align-items: start;
+      margin-top: 10px;
+    }
+
+    .event-image-preview.is-visible {
+      display: grid;
+    }
+
+    .event-image-preview img {
+      width: min(280px, 100%);
+      aspect-ratio: 16 / 9;
+      object-fit: cover;
+      border-radius: 6px;
+      border: 1px solid var(--line);
+      background: #f3eadc;
     }
 
     .validation-screen {
@@ -664,6 +716,22 @@
       border: 1px solid var(--line);
       border-radius: 8px;
       background: var(--paper-2);
+    }
+
+    .admin-event-row__thumb {
+      width: 100%;
+      aspect-ratio: 16 / 7;
+      overflow: hidden;
+      border-radius: 6px;
+      border: 1px solid var(--line);
+      background: #f3eadc;
+    }
+
+    .admin-event-row__thumb img {
+      display: block;
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
     }
 
     .admin-event-row strong {
@@ -1264,6 +1332,16 @@
                   <input id="eventMapsInput" name="mapsUrl" type="url" placeholder="https://maps.google.com/...">
                 </div>
                 <div class="field field--full">
+                  <label for="eventImageFileInput">Arte/imagem do evento</label>
+                  <input id="eventImageFileInput" name="imageFile" type="file" accept="image/png,image/jpeg,image/jpg">
+                  <span class="hint">Aceita PNG, JPG ou JPEG. A imagem aparece no card do evento para facilitar a identificacao.</span>
+                  <input id="eventImageUrlInput" name="imageUrl" type="url" placeholder="Ou cole um link direto da imagem">
+                  <div class="event-image-preview" id="eventImagePreview">
+                    <img id="eventImagePreviewImg" alt="Previa da arte do evento">
+                    <button class="mini" type="button" id="removeEventImageButton">Remover imagem</button>
+                  </div>
+                </div>
+                <div class="field field--full">
                   <label for="eventDescriptionInput">Descrição *</label>
                   <textarea id="eventDescriptionInput" name="description" rows="3" required></textarea>
                 </div>
@@ -1451,10 +1529,57 @@
         description: String(event.description || "").trim(),
         address,
         mapsUrl: String(event.mapsUrl || `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(address)}`).trim(),
+        imageUrl: String(event.imageUrl || event.image_url || "").trim(),
         date: String(event.date || "").trim(),
         startsAt: String(event.startsAt || "A confirmar").trim(),
         endsAt: String(event.endsAt || "A confirmar").trim()
       };
+    }
+
+    function updateEventImagePreview(src = "") {
+      const preview = $("#eventImagePreview");
+      const image = $("#eventImagePreviewImg");
+      if (!preview || !image) return;
+      if (!src) {
+        preview.classList.remove("is-visible");
+        image.removeAttribute("src");
+        return;
+      }
+      image.src = src;
+      preview.classList.add("is-visible");
+    }
+
+    function resizeEventImage(file) {
+      return new Promise((resolve, reject) => {
+        if (!file) {
+          resolve("");
+          return;
+        }
+        if (!/^image\/(png|jpe?g)$/i.test(file.type)) {
+          reject(new Error("Use uma imagem PNG, JPG ou JPEG."));
+          return;
+        }
+        const reader = new FileReader();
+        reader.onerror = () => reject(new Error("Nao foi possivel ler a imagem."));
+        reader.onload = () => {
+          const image = new Image();
+          image.onerror = () => reject(new Error("Nao foi possivel processar a imagem."));
+          image.onload = () => {
+            const maxWidth = 1200;
+            const scale = Math.min(1, maxWidth / image.width);
+            const width = Math.max(1, Math.round(image.width * scale));
+            const height = Math.max(1, Math.round(image.height * scale));
+            const canvas = document.createElement("canvas");
+            canvas.width = width;
+            canvas.height = height;
+            const context = canvas.getContext("2d");
+            context.drawImage(image, 0, 0, width, height);
+            resolve(canvas.toDataURL("image/jpeg", 0.82));
+          };
+          image.src = reader.result;
+        };
+        reader.readAsDataURL(file);
+      });
     }
 
     function saveEventsLocal() {
@@ -2175,6 +2300,15 @@
       `;
     }
 
+    function eventImageHtml(event, className = "event-card__image") {
+      if (!event.imageUrl) return "";
+      return `
+        <span class="${className}">
+          <img src="${escapeHtml(event.imageUrl)}" alt="Arte do evento ${escapeHtml(event.name)}" loading="lazy">
+        </span>
+      `;
+    }
+
     function renderEventCards() {
       const grid = $("#eventGrid");
       if (!grid) return;
@@ -2184,6 +2318,7 @@
         const isFull = available <= 0;
         return `
           <div class="event-card ${isFull ? "is-full" : ""}" data-event="${event.key}" role="button" tabindex="${isFull ? "-1" : "0"}" aria-disabled="${isFull ? "true" : "false"}">
+            ${eventImageHtml(event)}
             <strong>${escapeHtml(event.name)}</strong>
             <span>${escapeHtml(event.description)}</span>
             <span class="event-details">${eventDetailsHtml(event)}</span>
@@ -2215,6 +2350,7 @@
       $("#selectedEventHint").innerHTML = `
         Você está se inscrevendo em: <strong>${escapeHtml(event.name)}</strong>. ${event.paid ? "Este evento tem inscrição paga." : "Este evento é gratuito."} Vagas: ${eventCount(event.key)}/${event.capacity}.
           <span class="event-info">
+          ${eventImageHtml(event, "event-info__image")}
           <span>${escapeHtml(event.description)}</span>
           <span>${escapeHtml(eventTimeText(event))}</span>
           <span>Voltado para: ${escapeHtml(event.audience || "Toda a igreja")}</span>
@@ -2711,6 +2847,7 @@
         const total = eventCount(event.key);
         return `
           <div class="admin-event-row">
+            ${event.imageUrl ? `<span class="admin-event-row__thumb"><img src="${escapeHtml(event.imageUrl)}" alt="Arte do evento ${escapeHtml(event.name)}" loading="lazy"></span>` : ""}
             <strong>${escapeHtml(event.name)}</strong>
             <small>${escapeHtml(event.date ? new Date(`${event.date}T12:00:00`).toLocaleDateString("pt-BR") : "Data a confirmar")}</small>
             <div class="admin-event-row__actions">
@@ -2736,6 +2873,9 @@
       $("#eventAudienceInput").value = event ? event.audience : "";
       $("#eventAddressInput").value = event ? event.address : "";
       $("#eventMapsInput").value = event ? event.mapsUrl : "";
+      $("#eventImageFileInput").value = "";
+      $("#eventImageUrlInput").value = event ? event.imageUrl || "" : "";
+      updateEventImagePreview(event ? event.imageUrl || "" : "");
       $("#eventDescriptionInput").value = event ? event.description : "";
       form.querySelector("button[type='submit']").textContent = event ? "Salvar evento" : "Criar evento";
       form.scrollIntoView({ behavior: "smooth", block: "center" });
@@ -2746,6 +2886,9 @@
       form.reset();
       $("#eventKeyInput").value = "";
       $("#eventCapacityInput").value = "450";
+      $("#eventImageFileInput").value = "";
+      $("#eventImageUrlInput").value = "";
+      updateEventImagePreview("");
       form.querySelector("button[type='submit']").textContent = "Criar evento";
       form.classList.add("is-hidden");
     }
@@ -3314,10 +3457,41 @@
 
     $("#newEventButton").addEventListener("click", () => openEventForm());
     $("#cancelEventForm").addEventListener("click", closeEventForm);
+    $("#eventImageUrlInput").addEventListener("input", (event) => {
+      updateEventImagePreview(event.target.value.trim());
+    });
+    $("#eventImageFileInput").addEventListener("change", async (event) => {
+      const file = event.target.files[0];
+      if (!file) return;
+      try {
+        const imageUrl = await resizeEventImage(file);
+        $("#eventImageUrlInput").value = imageUrl;
+        updateEventImagePreview(imageUrl);
+      } catch (error) {
+        event.target.value = "";
+        showMessage($("#adminEventMessage"), "Imagem nao carregada.", error.message);
+      }
+    });
+    $("#removeEventImageButton").addEventListener("click", () => {
+      $("#eventImageFileInput").value = "";
+      $("#eventImageUrlInput").value = "";
+      updateEventImagePreview("");
+    });
 
     $("#adminEventForm").addEventListener("submit", async (event) => {
       event.preventDefault();
       const data = Object.fromEntries(new FormData(event.target).entries());
+      const imageFile = $("#eventImageFileInput").files[0];
+      if (imageFile && !String(data.imageUrl || "").startsWith("data:image/")) {
+        try {
+          data.imageUrl = await resizeEventImage(imageFile);
+          $("#eventImageUrlInput").value = data.imageUrl;
+          updateEventImagePreview(data.imageUrl);
+        } catch (error) {
+          showMessage($("#adminEventMessage"), "Evento nao salvo.", error.message);
+          return;
+        }
+      }
       const existingKey = data.key || "";
       const baseKey = existingKey || slugify(data.name);
       let key = baseKey;

@@ -23,6 +23,7 @@ function normalizeEvent(event = {}) {
     description: String(event.description || "").trim(),
     address,
     mapsUrl: String(event.mapsUrl || event.maps_url || `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(address)}`).trim(),
+    imageUrl: String(event.imageUrl || event.image_url || "").trim(),
     date: String(event.date || event.event_date || "").trim(),
     startsAt: String(event.startsAt || event.starts_at || "A confirmar").trim(),
     endsAt: String(event.endsAt || event.ends_at || "A confirmar").trim()
