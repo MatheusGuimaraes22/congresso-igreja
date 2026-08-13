@@ -228,11 +228,52 @@
       background: #f3eadc;
     }
 
-    .event-card__image img {
+    .event-card__image img,
+    .event-card__slide img {
       display: block;
       width: 100%;
       height: 100%;
       object-fit: cover;
+    }
+
+    .event-card__carousel {
+      display: grid;
+      gap: 6px;
+    }
+
+    .event-card__slides {
+      display: flex;
+      width: 100%;
+      overflow-x: auto;
+      scroll-snap-type: x mandatory;
+      scrollbar-width: thin;
+      border-radius: 6px;
+    }
+
+    .event-card__slide {
+      flex: 0 0 100%;
+      aspect-ratio: 16 / 9;
+      overflow: hidden;
+      scroll-snap-align: start;
+      border: 1px solid var(--line);
+      background: #f3eadc;
+    }
+
+    .event-card__dots {
+      display: flex;
+      justify-content: center;
+      gap: 5px;
+    }
+
+    .event-card__dots span {
+      width: 7px;
+      height: 7px;
+      border-radius: 999px;
+      background: #d7c8b8;
+    }
+
+    .event-card__dots span:first-child {
+      background: var(--primary);
     }
 
     .event-card[data-event] {
@@ -313,8 +354,8 @@
 
     .event-image-preview {
       display: none;
-      gap: 8px;
-      align-items: start;
+      grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+      gap: 10px;
       margin-top: 10px;
     }
 
@@ -322,8 +363,13 @@
       display: grid;
     }
 
+    .event-image-preview__item {
+      display: grid;
+      gap: 6px;
+    }
+
     .event-image-preview img {
-      width: min(280px, 100%);
+      width: 100%;
       aspect-ratio: 16 / 9;
       object-fit: cover;
       border-radius: 6px;
@@ -1332,14 +1378,12 @@
                   <input id="eventMapsInput" name="mapsUrl" type="url" placeholder="https://maps.google.com/...">
                 </div>
                 <div class="field field--full">
-                  <label for="eventImageFileInput">Arte/imagem do evento</label>
-                  <input id="eventImageFileInput" name="imageFile" type="file" accept="image/png,image/jpeg,image/jpg">
-                  <span class="hint">Aceita PNG, JPG ou JPEG. A imagem aparece no card do evento para facilitar a identificacao.</span>
-                  <input id="eventImageUrlInput" name="imageUrl" type="url" placeholder="Ou cole um link direto da imagem">
-                  <div class="event-image-preview" id="eventImagePreview">
-                    <img id="eventImagePreviewImg" alt="Previa da arte do evento">
-                    <button class="mini" type="button" id="removeEventImageButton">Remover imagem</button>
-                  </div>
+                  <label for="eventImageFileInput">Artes/imagens do evento</label>
+                  <input id="eventImageFileInput" name="imageFile" type="file" accept="image/png,image/jpeg,image/jpg" multiple>
+                  <span class="hint">Aceita PNG, JPG ou JPEG. Limite de 5 imagens por evento. As imagens aparecem em carrossel no card.</span>
+                  <input id="eventImageUrlInput" name="imageUrl" type="url" placeholder="Ou cole um link direto de uma imagem">
+                  <input id="eventImageUrlsInput" name="imageUrls" type="hidden">
+                  <div class="event-image-preview" id="eventImagePreview"></div>
                 </div>
                 <div class="field field--full">
                   <label for="eventDescriptionInput">Descrição *</label>
@@ -1516,10 +1560,40 @@
         .slice(0, 48) || `evento-${Date.now().toString(36)}`;
     }
 
+    function normalizeImageUrls(event) {
+      const sources = [];
+      const rawList = event.imageUrls || event.image_urls;
+      if (Array.isArray(rawList)) {
+        sources.push(...rawList);
+      } else if (typeof rawList === "string" && rawList.trim()) {
+        try {
+          const parsed = JSON.parse(rawList);
+          if (Array.isArray(parsed)) sources.push(...parsed);
+          else sources.push(rawList);
+        } catch {
+          sources.push(...rawList.split(/\n|,/));
+        }
+      }
+      if (event.imageUrl || event.image_url) {
+        sources.push(event.imageUrl || event.image_url);
+      }
+      const seen = new Set();
+      return sources
+        .map((src) => String(src || "").trim())
+        .filter(Boolean)
+        .filter((src) => {
+          if (seen.has(src)) return false;
+          seen.add(src);
+          return true;
+        })
+        .slice(0, 5);
+    }
+
     function normalizeEvent(event) {
       const name = String(event.name || "Evento").trim();
       const key = String(event.key || slugify(name)).trim();
       const address = String(event.address || DEFAULT_EVENT_PLACE.address).trim();
+      const imageUrls = normalizeImageUrls(event);
       return {
         key,
         name,
@@ -1529,23 +1603,45 @@
         description: String(event.description || "").trim(),
         address,
         mapsUrl: String(event.mapsUrl || `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(address)}`).trim(),
-        imageUrl: String(event.imageUrl || event.image_url || "").trim(),
+        imageUrl: imageUrls[0] || "",
+        imageUrls,
         date: String(event.date || "").trim(),
         startsAt: String(event.startsAt || "A confirmar").trim(),
         endsAt: String(event.endsAt || "A confirmar").trim()
       };
     }
 
-    function updateEventImagePreview(src = "") {
+    function getEventFormImages() {
+      try {
+        const parsed = JSON.parse($("#eventImageUrlsInput").value || "[]");
+        return Array.isArray(parsed) ? parsed.slice(0, 5) : [];
+      } catch {
+        return [];
+      }
+    }
+
+    function setEventFormImages(urls = []) {
+      const normalized = normalizeImageUrls({ imageUrls: urls });
+      $("#eventImageUrlsInput").value = JSON.stringify(normalized);
+      $("#eventImageUrlInput").value = normalized[0] || "";
+      updateEventImagePreview(normalized);
+    }
+
+    function updateEventImagePreview(urls = []) {
       const preview = $("#eventImagePreview");
-      const image = $("#eventImagePreviewImg");
-      if (!preview || !image) return;
-      if (!src) {
+      if (!preview) return;
+      const list = normalizeImageUrls({ imageUrls: Array.isArray(urls) ? urls : [urls] });
+      if (!list.length) {
         preview.classList.remove("is-visible");
-        image.removeAttribute("src");
+        preview.innerHTML = "";
         return;
       }
-      image.src = src;
+      preview.innerHTML = list.map((src, index) => `
+        <span class="event-image-preview__item">
+          <img src="${escapeHtml(src)}" alt="Previa ${index + 1} da arte do evento">
+          <button class="mini" type="button" data-remove-event-image="${index}">Remover</button>
+        </span>
+      `).join("");
       preview.classList.add("is-visible");
     }
 
@@ -2301,10 +2397,27 @@
     }
 
     function eventImageHtml(event, className = "event-card__image") {
-      if (!event.imageUrl) return "";
+      const images = normalizeImageUrls(event);
+      if (!images.length) return "";
+      if (images.length === 1) {
+        return `
+          <span class="${className}">
+            <img src="${escapeHtml(images[0])}" alt="Arte do evento ${escapeHtml(event.name)}" loading="lazy">
+          </span>
+        `;
+      }
       return `
-        <span class="${className}">
-          <img src="${escapeHtml(event.imageUrl)}" alt="Arte do evento ${escapeHtml(event.name)}" loading="lazy">
+        <span class="event-card__carousel">
+          <span class="event-card__slides" aria-label="Artes do evento ${escapeHtml(event.name)}">
+            ${images.map((src, index) => `
+              <span class="event-card__slide">
+                <img src="${escapeHtml(src)}" alt="Arte ${index + 1} do evento ${escapeHtml(event.name)}" loading="lazy">
+              </span>
+            `).join("")}
+          </span>
+          <span class="event-card__dots" aria-hidden="true">
+            ${images.map(() => "<span></span>").join("")}
+          </span>
         </span>
       `;
     }
@@ -2845,9 +2958,10 @@
       if (!list) return;
       list.innerHTML = EVENTS.map((event) => {
         const total = eventCount(event.key);
+        const eventImages = normalizeImageUrls(event);
         return `
           <div class="admin-event-row">
-            ${event.imageUrl ? `<span class="admin-event-row__thumb"><img src="${escapeHtml(event.imageUrl)}" alt="Arte do evento ${escapeHtml(event.name)}" loading="lazy"></span>` : ""}
+            ${eventImages.length ? `<span class="admin-event-row__thumb"><img src="${escapeHtml(eventImages[0])}" alt="Arte do evento ${escapeHtml(event.name)}" loading="lazy"></span>` : ""}
             <strong>${escapeHtml(event.name)}</strong>
             <small>${escapeHtml(event.date ? new Date(`${event.date}T12:00:00`).toLocaleDateString("pt-BR") : "Data a confirmar")}</small>
             <div class="admin-event-row__actions">
@@ -2874,8 +2988,7 @@
       $("#eventAddressInput").value = event ? event.address : "";
       $("#eventMapsInput").value = event ? event.mapsUrl : "";
       $("#eventImageFileInput").value = "";
-      $("#eventImageUrlInput").value = event ? event.imageUrl || "" : "";
-      updateEventImagePreview(event ? event.imageUrl || "" : "");
+      setEventFormImages(event ? normalizeImageUrls(event) : []);
       $("#eventDescriptionInput").value = event ? event.description : "";
       form.querySelector("button[type='submit']").textContent = event ? "Salvar evento" : "Criar evento";
       form.scrollIntoView({ behavior: "smooth", block: "center" });
@@ -2887,8 +3000,7 @@
       $("#eventKeyInput").value = "";
       $("#eventCapacityInput").value = "450";
       $("#eventImageFileInput").value = "";
-      $("#eventImageUrlInput").value = "";
-      updateEventImagePreview("");
+      setEventFormImages([]);
       form.querySelector("button[type='submit']").textContent = "Criar evento";
       form.classList.add("is-hidden");
     }
@@ -3458,40 +3570,62 @@
     $("#newEventButton").addEventListener("click", () => openEventForm());
     $("#cancelEventForm").addEventListener("click", closeEventForm);
     $("#eventImageUrlInput").addEventListener("input", (event) => {
-      updateEventImagePreview(event.target.value.trim());
+      const current = getEventFormImages();
+      const typed = event.target.value.trim();
+      if (typed) current[0] = typed;
+      else current.shift();
+      setEventFormImages(current);
     });
     $("#eventImageFileInput").addEventListener("change", async (event) => {
-      const file = event.target.files[0];
-      if (!file) return;
+      const files = Array.from(event.target.files || []);
+      if (!files.length) return;
       try {
-        const imageUrl = await resizeEventImage(file);
-        $("#eventImageUrlInput").value = imageUrl;
-        updateEventImagePreview(imageUrl);
+        const current = getEventFormImages();
+        const availableSlots = Math.max(0, 5 - current.length);
+        if (!availableSlots) {
+          showMessage($("#adminEventMessage"), "Limite atingido.", "Cada evento pode ter no maximo 5 imagens.");
+          event.target.value = "";
+          return;
+        }
+        const selectedFiles = files.slice(0, availableSlots);
+        const imageUrls = await Promise.all(selectedFiles.map(resizeEventImage));
+        setEventFormImages([...current, ...imageUrls]);
+        event.target.value = "";
+        if (files.length > availableSlots) {
+          showMessage($("#adminEventMessage"), "Algumas imagens nao foram adicionadas.", "O limite e de 5 imagens por evento.");
+        }
       } catch (error) {
         event.target.value = "";
         showMessage($("#adminEventMessage"), "Imagem nao carregada.", error.message);
       }
     });
-    $("#removeEventImageButton").addEventListener("click", () => {
+    $("#eventImagePreview").addEventListener("click", (event) => {
+      const button = event.target.closest("[data-remove-event-image]");
+      if (!button) return;
+      const index = Number(button.dataset.removeEventImage);
+      const current = getEventFormImages();
+      current.splice(index, 1);
       $("#eventImageFileInput").value = "";
-      $("#eventImageUrlInput").value = "";
-      updateEventImagePreview("");
+      setEventFormImages(current);
     });
 
     $("#adminEventForm").addEventListener("submit", async (event) => {
       event.preventDefault();
       const data = Object.fromEntries(new FormData(event.target).entries());
-      const imageFile = $("#eventImageFileInput").files[0];
-      if (imageFile && !String(data.imageUrl || "").startsWith("data:image/")) {
+      data.imageUrls = getEventFormImages();
+      const pendingFiles = Array.from($("#eventImageFileInput").files || []);
+      if (pendingFiles.length && data.imageUrls.length < 5) {
         try {
-          data.imageUrl = await resizeEventImage(imageFile);
-          $("#eventImageUrlInput").value = data.imageUrl;
-          updateEventImagePreview(data.imageUrl);
+          const availableSlots = Math.max(0, 5 - data.imageUrls.length);
+          const imageUrls = await Promise.all(pendingFiles.slice(0, availableSlots).map(resizeEventImage));
+          data.imageUrls = normalizeImageUrls({ imageUrls: [...data.imageUrls, ...imageUrls] });
+          setEventFormImages(data.imageUrls);
         } catch (error) {
           showMessage($("#adminEventMessage"), "Evento nao salvo.", error.message);
           return;
         }
       }
+      data.imageUrl = data.imageUrls[0] || "";
       const existingKey = data.key || "";
       const baseKey = existingKey || slugify(data.name);
       let key = baseKey;

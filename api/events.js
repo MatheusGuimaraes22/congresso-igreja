@@ -14,6 +14,7 @@ function normalizeEvent(event = {}) {
   const name = String(event.name || "Evento").trim();
   const key = String(event.key || slugify(name)).trim();
   const address = String(event.address || "Igreja Reformada Comunidade da Cruz").trim();
+  const imageUrls = normalizeImageUrls(event);
   return {
     key,
     name,
@@ -23,11 +24,41 @@ function normalizeEvent(event = {}) {
     description: String(event.description || "").trim(),
     address,
     mapsUrl: String(event.mapsUrl || event.maps_url || `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(address)}`).trim(),
-    imageUrl: String(event.imageUrl || event.image_url || "").trim(),
+    imageUrl: imageUrls[0] || "",
+    imageUrls,
     date: String(event.date || event.event_date || "").trim(),
     startsAt: String(event.startsAt || event.starts_at || "A confirmar").trim(),
     endsAt: String(event.endsAt || event.ends_at || "A confirmar").trim()
   };
+}
+
+function normalizeImageUrls(event = {}) {
+  const sources = [];
+  const rawList = event.imageUrls || event.image_urls;
+  if (Array.isArray(rawList)) {
+    sources.push(...rawList);
+  } else if (typeof rawList === "string" && rawList.trim()) {
+    try {
+      const parsed = JSON.parse(rawList);
+      if (Array.isArray(parsed)) sources.push(...parsed);
+      else sources.push(rawList);
+    } catch (_) {
+      sources.push(...rawList.split(/\n|,/));
+    }
+  }
+  if (event.imageUrl || event.image_url) {
+    sources.push(event.imageUrl || event.image_url);
+  }
+  const seen = new Set();
+  return sources
+    .map((src) => String(src || "").trim())
+    .filter(Boolean)
+    .filter((src) => {
+      if (seen.has(src)) return false;
+      seen.add(src);
+      return true;
+    })
+    .slice(0, 5);
 }
 
 function slugify(value) {
