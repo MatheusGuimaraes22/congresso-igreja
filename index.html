@@ -1455,6 +1455,8 @@
       { key: "encontro-casais", name: "Encontro de casais", paid: false, capacity: 450, audience: "Casais", description: "Inscrição gratuita para encontro de casais.", ...DEFAULT_EVENT_PLACE }
     ];
     const DEFAULT_EVENTS = EVENTS.map((event) => ({ ...event }));
+    const LEGACY_DEFAULT_EVENT_KEYS = new Set(DEFAULT_EVENTS.map((event) => event.key));
+    EVENTS.splice(0, EVENTS.length);
 
     const $ = (selector) => document.querySelector(selector);
     const form = $("#registrationForm");
@@ -1688,7 +1690,7 @@
       if (!hasLocalStorage) return [];
       try {
         const stored = JSON.parse(localStorage.getItem(`${CONFIG.storageKey}:events`) || "[]");
-        return Array.isArray(stored) ? stored.map(normalizeEvent) : [];
+        return Array.isArray(stored) ? mergeEvents(stored.map(normalizeEvent)) : [];
       } catch {
         return [];
       }
@@ -1698,6 +1700,7 @@
       const merged = new Map();
       groups.flat().filter(Boolean).forEach((event) => {
         const normalized = normalizeEvent(event);
+        if (LEGACY_DEFAULT_EVENT_KEYS.has(normalized.key)) return;
         merged.set(normalized.key, normalized);
       });
       return Array.from(merged.values());
@@ -1712,7 +1715,8 @@
           activeAdminEventKey = EVENTS[0]?.key || "";
         }
       } catch {
-        EVENTS.splice(0, EVENTS.length, ...DEFAULT_EVENTS.map(normalizeEvent));
+        EVENTS.splice(0, EVENTS.length);
+        activeAdminEventKey = "";
       }
     }
 
@@ -1787,14 +1791,8 @@
 
     function applyLoadedEvents(data) {
       const rows = (data || []).map((item) => item && (item.mapsUrl || item.startsAt) ? normalizeEvent(item) : rowToEvent(item));
-      if (rows.length) {
-        const merged = mergeEvents(DEFAULT_EVENTS, rows);
-        EVENTS.splice(0, EVENTS.length, ...merged);
-      } else {
-        const merged = mergeEvents(DEFAULT_EVENTS);
-        EVENTS.splice(0, EVENTS.length, ...merged);
-        syncEventsToSupabase(EVENTS).catch((syncError) => console.warn("Falha ao sincronizar eventos:", syncError.message));
-      }
+      const merged = mergeEvents(rows);
+      EVENTS.splice(0, EVENTS.length, ...merged);
       activeAdminEventKey = EVENTS[0]?.key || "";
       saveEventsLocal();
     }

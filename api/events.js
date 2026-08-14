@@ -3,6 +3,13 @@ const SUPABASE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABA
 const EVENTS_TABLE = process.env.SUPABASE_EVENTS_TABLE || "eventos_config";
 const GOOGLE_APPS_SCRIPT_URL = process.env.GOOGLE_APPS_SCRIPT_URL || "https://script.google.com/macros/s/AKfycbyC2OoAlETA2zvbvWqpC3P-qDEkc1HLDoHSax_v2xESbAXwyYB3W7oc1rJcT1OMNOkO/exec";
 const https = require("node:https");
+const LEGACY_DEFAULT_EVENT_KEYS = new Set([
+  "clube-biblia",
+  "congresso-mulheres",
+  "musical",
+  "missio-dei",
+  "encontro-casais"
+]);
 
 function json(res, status, body) {
   res.setHeader("Content-Type", "application/json; charset=utf-8");
@@ -258,7 +265,10 @@ module.exports = async function handler(req, res) {
         method: "GET",
         headers: { Prefer: "" }
       });
-      return json(res, 200, { ok: true, events: (rows || []).map(fromRow) });
+      const events = (rows || [])
+        .map(fromRow)
+        .filter((event) => !LEGACY_DEFAULT_EVENT_KEYS.has(event.key));
+      return json(res, 200, { ok: true, events });
     }
 
     if (req.method === "POST" || req.method === "PUT" || req.method === "PATCH") {
