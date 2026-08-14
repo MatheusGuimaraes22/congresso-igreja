@@ -11,9 +11,9 @@ const LEGACY_DEFAULT_EVENT_KEYS = new Set([
   "encontro-casais"
 ]);
 
-function json(res, status, body) {
+function json(res, status, body, cacheControl = "no-store, max-age=0") {
   res.setHeader("Content-Type", "application/json; charset=utf-8");
-  res.setHeader("Cache-Control", "no-store, max-age=0");
+  res.setHeader("Cache-Control", cacheControl);
   res.status(status).json(body);
 }
 
@@ -268,7 +268,7 @@ module.exports = async function handler(req, res) {
       const events = (rows || [])
         .map(fromRow)
         .filter((event) => !LEGACY_DEFAULT_EVENT_KEYS.has(event.key));
-      return json(res, 200, { ok: true, events });
+      return json(res, 200, { ok: true, events }, "public, s-maxage=30, stale-while-revalidate=300");
     }
 
     if (req.method === "POST" || req.method === "PUT" || req.method === "PATCH") {

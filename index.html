@@ -1799,9 +1799,9 @@
 
     async function fetchEventsFromApi() {
       if (!CONFIG.eventsApiUrl) return null;
-      const response = await fetch(`${CONFIG.eventsApiUrl}?t=${Date.now()}`, {
+      const response = await fetch(CONFIG.eventsApiUrl, {
         headers: { Accept: "application/json" },
-        cache: "no-store"
+        cache: "default"
       }).catch((error) => {
         throw new Error(`API de eventos indisponível: ${error.message}`);
       });
@@ -3793,14 +3793,22 @@
 
     (async () => {
       renderQuickLinks();
+      loadEventsLocal();
       renderEventCards();
-      await loadEventsFromSupabase()
+      const initialParams = new URLSearchParams(window.location.search);
+      if (!initialParams.get("validar") && !initialParams.get("admin") && initialParams.get("acao") !== "comprovante") {
+        if (!applyEventRegistrationFromUrl()) showTab("eventos");
+      }
+      const eventsLoadPromise = loadEventsFromSupabase()
+        .then(() => {
+          renderEventCards();
+          renderAdmin();
+          applyEventRegistrationFromUrl();
+        })
         .catch((error) => console.warn("Falha ao inicializar eventos:", error.message));
-      renderEventCards();
-      renderAdmin();
       await Promise.race([
         loadRecordsFromSupabase().catch((error) => console.warn("Falha ao inicializar inscritos:", error.message)),
-        wait(1200)
+        wait(250)
       ]);
       if (await applyValidationFromUrl()) return;
       applyProofReturnFromUrl();
@@ -3808,6 +3816,7 @@
         showTab("eventos");
         updateAdminAccess();
       }
+      eventsLoadPromise.catch(() => {});
     })();
   </script>
 </body>
