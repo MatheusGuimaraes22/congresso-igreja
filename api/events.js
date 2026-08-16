@@ -95,9 +95,21 @@ function normalizeEventSchedule(event = {}, durationDays = 1, eventDates = []) {
     return {
       date: String(entry.date || eventDates[index] || "").trim(),
       startsAt: String(entry.startsAt || entry.starts_at || fallbackStartsAt).trim(),
-      endsAt: String(entry.endsAt || entry.ends_at || fallbackEndsAt).trim()
+      endsAt: String(entry.endsAt || entry.ends_at || fallbackEndsAt).trim(),
+      moments: normalizeEventMoments(entry.moments || entry.items || [])
     };
   });
+}
+
+function normalizeEventMoments(moments = []) {
+  if (!Array.isArray(moments)) return [];
+  return moments
+    .map((moment) => ({
+      startsAt: String(moment.startsAt || moment.starts_at || "").trim(),
+      endsAt: String(moment.endsAt || moment.ends_at || "").trim(),
+      theme: String(moment.theme || moment.title || "").trim()
+    }))
+    .filter((moment) => moment.startsAt || moment.endsAt || moment.theme);
 }
 
 function normalizeImageUrls(event = {}) {

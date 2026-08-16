@@ -49,6 +49,7 @@ function createCalendarInvite(registration) {
     `E-mail: ${registration.email || ""}`,
     `Telefone: ${registration.phone || ""}`,
     `Dias de participacao: ${getEventDaysText(registration)}`,
+    `Programacao: ${getEventScheduleText(registration)}`,
     `Status de pagamento: ${registration.paymentStatus || ""}`,
     `Referencia: ${registration.paymentReference || ""}`,
     `QR Code/validacao: ${registration.validationLink || ""}`,
@@ -95,6 +96,7 @@ function sendAdminEmail(registration) {
     `E-mail: ${registration.email || ""}`,
     `WhatsApp: ${registration.phone || ""}`,
     `Dias de participacao: ${getEventDaysText(registration)}`,
+    `Programacao: ${getEventScheduleText(registration)}`,
     `Codigo: ${registration.id || ""}`,
     `Pagamento: ${registration.paymentStatus || ""}`,
     `Referencia: ${registration.paymentReference || ""}`,
@@ -175,6 +177,7 @@ function buildUserMessage(registration) {
     registration.eventDescription || "",
     `Data: ${registration.eventDate || "A confirmar"}`,
     `Dias de participacao: ${getEventDaysText(registration)}`,
+    `Programacao: ${getEventScheduleText(registration)}`,
     `Horario: ${registration.eventStartsAt || "A confirmar"} ate ${registration.eventEndsAt || "A confirmar"}`,
     `Local: ${registration.eventAddress || "A confirmar"}`,
     `Maps: ${registration.eventMapsUrl || ""}`,
@@ -197,6 +200,19 @@ function getEventDaysText(registration) {
     return registration.eventDays.join(", ");
   }
   return "Nao informado";
+}
+
+function getEventScheduleText(registration) {
+  if (!Array.isArray(registration.eventSchedule)) return "Nao informada";
+  const lines = [];
+  registration.eventSchedule.forEach((day, index) => {
+    if (!Array.isArray(day.moments) || !day.moments.length) return;
+    lines.push(`Dia ${index + 1} (${day.date || "data a confirmar"})`);
+    day.moments.forEach((moment) => {
+      lines.push(`- ${moment.startsAt || "A confirmar"} ate ${moment.endsAt || "A confirmar"}: ${moment.theme || "Momento"}`);
+    });
+  });
+  return lines.length ? lines.join("\n") : "Nao informada";
 }
 
 function normalizeBrazilPhone(value) {

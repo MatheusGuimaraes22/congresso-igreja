@@ -487,6 +487,72 @@
     .address-street { grid-column: span 7; }
     .address-number { grid-column: span 2; }
 
+    .event-day-config {
+      grid-column: 1 / -1;
+      display: grid;
+      grid-template-columns: repeat(12, minmax(0, 1fr));
+      gap: 12px;
+      padding: 12px;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: #fffaf2;
+    }
+
+    .event-day-config__title,
+    .event-day-config__moments {
+      grid-column: 1 / -1;
+    }
+
+    .event-day-config__title {
+      font-size: 16px;
+      font-weight: 900;
+    }
+
+    .event-day-config__moments {
+      display: grid;
+      gap: 10px;
+      padding-top: 4px;
+    }
+
+    .event-moment-row {
+      display: grid;
+      grid-template-columns: minmax(90px, 1fr) minmax(90px, 1fr) minmax(160px, 2fr) auto;
+      gap: 10px;
+      align-items: end;
+      padding: 10px;
+      border: 1px solid #e0d2bf;
+      border-radius: 8px;
+      background: #fff;
+    }
+
+    .event-moment-row .field {
+      grid-column: auto;
+    }
+
+    .event-program {
+      display: grid;
+      gap: 8px;
+      margin-top: 6px;
+    }
+
+    .event-program__day {
+      display: grid;
+      gap: 4px;
+      padding: 8px 10px;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: #fffaf2;
+    }
+
+    .event-program__day strong {
+      font-size: 14px;
+    }
+
+    .event-program__day small {
+      color: var(--muted);
+      line-height: 1.35;
+    }
+
     label {
       font-size: 13px;
       font-weight: 800;
@@ -1001,6 +1067,10 @@
       .address-street,
       .address-number {
         grid-column: 1 / -1;
+      }
+
+      .event-moment-row {
+        grid-template-columns: 1fr;
       }
 
       .qr-wrap {
@@ -1607,9 +1677,21 @@
         return {
           date: String(entry.date || eventDates[index] || "").trim(),
           startsAt: String(entry.startsAt || entry.starts_at || fallbackStartsAt).trim(),
-          endsAt: String(entry.endsAt || entry.ends_at || fallbackEndsAt).trim()
+          endsAt: String(entry.endsAt || entry.ends_at || fallbackEndsAt).trim(),
+          moments: normalizeEventMoments(entry.moments || entry.items || [])
         };
       });
+    }
+
+    function normalizeEventMoments(moments = []) {
+      if (!Array.isArray(moments)) return [];
+      return moments
+        .map((moment) => ({
+          startsAt: String(moment.startsAt || moment.starts_at || "").trim(),
+          endsAt: String(moment.endsAt || moment.ends_at || "").trim(),
+          theme: String(moment.theme || moment.title || "").trim()
+        }))
+        .filter((moment) => moment.startsAt || moment.endsAt || moment.theme);
     }
 
     function getEventFormImages() {
@@ -2437,22 +2519,69 @@
       if (!container) return;
       const count = Math.min(7, Math.max(1, Number(durationDays || 1)));
       container.innerHTML = Array.from({ length: count }, (_, index) => `
-        <div class="field field--third">
-          <label for="eventDateDay${index + 1}">Dia ${index + 1} *</label>
-          <input id="eventDateDay${index + 1}" name="eventDates" type="date" value="${escapeHtml(schedule[index]?.date || "")}" required>
-        </div>
-        <div class="field field--third">
-          <label for="eventStartDay${index + 1}">Início do dia ${index + 1} *</label>
-          <input id="eventStartDay${index + 1}" name="eventStartsAt" placeholder="Ex.: 19h30" value="${escapeHtml(schedule[index]?.startsAt || "")}" required>
-        </div>
-        <div class="field field--third">
-          <label for="eventEndDay${index + 1}">Término do dia ${index + 1} *</label>
-          <input id="eventEndDay${index + 1}" name="eventEndsAt" placeholder="Ex.: 22h00" value="${escapeHtml(schedule[index]?.endsAt || "")}" required>
+        <div class="event-day-config" data-day-index="${index}">
+          <strong class="event-day-config__title">Dia ${index + 1}</strong>
+          <div class="field field--third">
+            <label for="eventDateDay${index + 1}">Data *</label>
+            <input id="eventDateDay${index + 1}" name="eventDates" type="date" value="${escapeHtml(schedule[index]?.date || "")}" required>
+          </div>
+          <div class="field field--third">
+            <label for="eventStartDay${index + 1}">Início do dia *</label>
+            <input id="eventStartDay${index + 1}" name="eventStartsAt" placeholder="Ex.: 19h30" value="${escapeHtml(schedule[index]?.startsAt || "")}" required>
+          </div>
+          <div class="field field--third">
+            <label for="eventEndDay${index + 1}">Término do dia *</label>
+            <input id="eventEndDay${index + 1}" name="eventEndsAt" placeholder="Ex.: 22h00" value="${escapeHtml(schedule[index]?.endsAt || "")}" required>
+          </div>
+          <div class="event-day-config__moments">
+            <label>Momentos planejados</label>
+            ${renderAdminMomentFields(index, schedule[index]?.moments || [])}
+            <button class="mini" type="button" data-add-moment="${index}">Adicionar momento</button>
+          </div>
         </div>
       `).join("");
       $("#eventDateInput").value = schedule[0]?.date || "";
       $("#eventStartsInput").value = schedule[0]?.startsAt || "";
       $("#eventEndsInput").value = schedule[schedule.length - 1]?.endsAt || "";
+    }
+
+    function renderAdminMomentFields(dayIndex, moments = []) {
+      if (!moments.length) {
+        return `<p class="hint">Nenhum momento adicionado para este dia.</p>`;
+      }
+      return moments.map((moment, momentIndex) => `
+        <div class="event-moment-row" data-moment-index="${momentIndex}">
+          <div class="field">
+            <label>Início</label>
+            <input name="eventMomentStartsAt" placeholder="Ex.: 08h30" value="${escapeHtml(moment.startsAt || "")}">
+          </div>
+          <div class="field">
+            <label>Término</label>
+            <input name="eventMomentEndsAt" placeholder="Ex.: 10h00" value="${escapeHtml(moment.endsAt || "")}">
+          </div>
+          <div class="field">
+            <label>Tema</label>
+            <input name="eventMomentTheme" placeholder="Ex.: Abertura, palestra, louvor" value="${escapeHtml(moment.theme || "")}">
+          </div>
+          <button class="mini" type="button" data-remove-moment="${dayIndex}:${momentIndex}">Remover</button>
+        </div>
+      `).join("");
+    }
+
+    function collectAdminEventSchedule() {
+      return Array.from(document.querySelectorAll("#eventDateFields .event-day-config")).map((day) => {
+        const moments = Array.from(day.querySelectorAll(".event-moment-row")).map((row) => ({
+          startsAt: row.querySelector("[name='eventMomentStartsAt']")?.value.trim() || "",
+          endsAt: row.querySelector("[name='eventMomentEndsAt']")?.value.trim() || "",
+          theme: row.querySelector("[name='eventMomentTheme']")?.value.trim() || ""
+        })).filter((moment) => moment.startsAt || moment.endsAt || moment.theme);
+        return {
+          date: day.querySelector("[name='eventDates']")?.value.trim() || "",
+          startsAt: day.querySelector("[name='eventStartsAt']")?.value.trim() || "",
+          endsAt: day.querySelector("[name='eventEndsAt']")?.value.trim() || "",
+          moments
+        };
+      });
     }
 
     function renderEventDayOptions(event) {
@@ -2481,6 +2610,30 @@
         <span>${escapeHtml(eventTimeText(event))}</span>
         <span>Voltado para: ${escapeHtml(event.audience || "Toda a igreja")}</span>
         <span>Endereço: ${escapeHtml(event.address || "A confirmar")}</span>
+        ${eventProgramHtml(event)}
+      `;
+    }
+
+    function eventProgramHtml(event) {
+      const schedule = Array.isArray(event.eventSchedule) ? event.eventSchedule : [];
+      const daysWithMoments = schedule.filter((day) => Array.isArray(day.moments) && day.moments.length);
+      if (!daysWithMoments.length) return "";
+      return `
+        <span class="event-program">
+          ${daysWithMoments.map((day, index) => {
+            const dayLabel = /^\d{4}-\d{2}-\d{2}$/.test(day.date || "")
+              ? new Date(`${day.date}T12:00:00`).toLocaleDateString("pt-BR", { weekday: "short", day: "2-digit", month: "2-digit" })
+              : `Dia ${index + 1}`;
+            return `
+              <span class="event-program__day">
+                <strong>${escapeHtml(dayLabel)}</strong>
+                ${day.moments.map((moment) => `
+                  <small>${escapeHtml(moment.startsAt || "A confirmar")} - ${escapeHtml(moment.endsAt || "A confirmar")}: ${escapeHtml(moment.theme || "Momento")}</small>
+                `).join("")}
+              </span>
+            `;
+          }).join("")}
+        </span>
       `;
     }
 
@@ -3685,40 +3838,38 @@
     });
 
     $("#eventDurationInput").addEventListener("change", (event) => {
-      const formData = new FormData($("#adminEventForm"));
-      const currentDates = formData.getAll("eventDates");
-      const currentStarts = formData.getAll("eventStartsAt");
-      const currentEnds = formData.getAll("eventEndsAt");
-      const currentSchedule = currentDates.map((date, index) => ({
-        date,
-        startsAt: currentStarts[index] || "",
-        endsAt: currentEnds[index] || ""
-      }));
-      renderAdminEventDateFields(event.target.value, currentSchedule);
+      renderAdminEventDateFields(event.target.value, collectAdminEventSchedule());
     });
 
     $("#eventDateFields").addEventListener("input", () => {
-      const formData = new FormData($("#adminEventForm"));
-      const dates = formData.getAll("eventDates");
-      const starts = formData.getAll("eventStartsAt");
-      const ends = formData.getAll("eventEndsAt");
-      $("#eventDateInput").value = dates[0] || "";
-      $("#eventStartsInput").value = starts[0] || "";
-      $("#eventEndsInput").value = ends[ends.length - 1] || "";
+      const schedule = collectAdminEventSchedule();
+      $("#eventDateInput").value = schedule[0]?.date || "";
+      $("#eventStartsInput").value = schedule[0]?.startsAt || "";
+      $("#eventEndsInput").value = schedule[schedule.length - 1]?.endsAt || "";
+    });
+
+    $("#eventDateFields").addEventListener("click", (event) => {
+      const addButton = event.target.closest("[data-add-moment]");
+      const removeButton = event.target.closest("[data-remove-moment]");
+      if (!addButton && !removeButton) return;
+      const schedule = collectAdminEventSchedule();
+      if (addButton) {
+        const dayIndex = Number(addButton.dataset.addMoment);
+        schedule[dayIndex].moments.push({ startsAt: "", endsAt: "", theme: "" });
+      }
+      if (removeButton) {
+        const [dayIndex, momentIndex] = removeButton.dataset.removeMoment.split(":").map(Number);
+        schedule[dayIndex].moments.splice(momentIndex, 1);
+      }
+      renderAdminEventDateFields($("#eventDurationInput").value, schedule);
     });
 
     $("#adminEventForm").addEventListener("submit", async (event) => {
       event.preventDefault();
       const formData = new FormData(event.target);
       const data = Object.fromEntries(formData.entries());
-      data.eventDates = formData.getAll("eventDates").map((value) => String(value || "").trim()).filter(Boolean);
-      const eventStartsAt = formData.getAll("eventStartsAt").map((value) => String(value || "").trim());
-      const eventEndsAt = formData.getAll("eventEndsAt").map((value) => String(value || "").trim());
-      data.eventSchedule = data.eventDates.map((date, index) => ({
-        date,
-        startsAt: eventStartsAt[index] || "",
-        endsAt: eventEndsAt[index] || ""
-      }));
+      data.eventSchedule = collectAdminEventSchedule();
+      data.eventDates = data.eventSchedule.map((item) => item.date).filter(Boolean);
       data.date = data.eventDates[0] || "";
       data.startsAt = data.eventSchedule[0]?.startsAt || "";
       data.endsAt = data.eventSchedule[data.eventSchedule.length - 1]?.endsAt || "";
@@ -3728,6 +3879,10 @@
       }
       if (data.eventSchedule.some((item) => !item.startsAt || !item.endsAt)) {
         showMessage($("#adminEventMessage"), "Evento nao salvo.", "Informe horario de inicio e termino em todos os dias.");
+        return;
+      }
+      if (data.eventSchedule.some((item) => item.moments.some((moment) => !moment.startsAt || !moment.endsAt || !moment.theme))) {
+        showMessage($("#adminEventMessage"), "Evento nao salvo.", "Preencha inicio, termino e tema em todos os momentos adicionados.");
         return;
       }
       data.imageUrls = getEventFormImages();

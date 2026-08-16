@@ -141,6 +141,7 @@ function buildRegistrationMessage(registration) {
     "E-mail: " + (registration.email || ""),
     "Telefone: " + (registration.phone || ""),
     "Dias de participacao: " + getEventDaysText(registration),
+    "Programacao: " + getEventScheduleText(registration),
     "Status de pagamento: " + (registration.paymentStatus || ""),
     "Referencia: " + (registration.paymentReference || ""),
     "QR Code/validacao: " + (registration.validationLink || ""),
@@ -156,6 +157,7 @@ function buildUserEmail(registration) {
     "",
     "Data: " + (registration.eventDate || "A confirmar"),
     "Dias de participacao: " + getEventDaysText(registration),
+    "Programacao: " + getEventScheduleText(registration),
     "Horario: " +
       (registration.eventStartsAt || "A confirmar") +
       " ate " +
@@ -184,6 +186,7 @@ function buildAdminRegistrationEmail(registration) {
     "E-mail: " + (registration.email || ""),
     "WhatsApp: " + (registration.phone || ""),
     "Dias de participacao: " + getEventDaysText(registration),
+    "Programacao: " + getEventScheduleText(registration),
     "Codigo: " + (registration.id || ""),
     "Pagamento: " + (registration.paymentStatus || ""),
     "Referencia: " + (registration.paymentReference || ""),
@@ -200,6 +203,19 @@ function getEventDaysText(registration) {
     return registration.eventDays.join(", ");
   }
   return "Nao informado";
+}
+
+function getEventScheduleText(registration) {
+  if (!Array.isArray(registration.eventSchedule)) return "Nao informada";
+  var lines = [];
+  registration.eventSchedule.forEach(function(day, index) {
+    if (!Array.isArray(day.moments) || !day.moments.length) return;
+    lines.push("Dia " + (index + 1) + " (" + (day.date || "data a confirmar") + ")");
+    day.moments.forEach(function(moment) {
+      lines.push("- " + (moment.startsAt || "A confirmar") + " ate " + (moment.endsAt || "A confirmar") + ": " + (moment.theme || "Momento"));
+    });
+  });
+  return lines.length ? lines.join("\n") : "Nao informada";
 }
 
 function sendWhatsAppConfirmation(registration) {
