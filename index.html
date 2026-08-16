@@ -319,6 +319,38 @@
       line-height: 1.35;
     }
 
+    .event-card__program {
+      display: grid;
+      gap: 8px;
+      padding: 10px;
+      border: 1px solid #dbc8b4;
+      border-radius: 8px;
+      background: #f7efe4;
+      color: #303630;
+    }
+
+    .event-card__program-title {
+      font-size: 13px;
+      font-weight: 900;
+      color: var(--primary);
+    }
+
+    .event-card__program-day {
+      display: grid;
+      gap: 3px;
+    }
+
+    .event-card__program-day strong {
+      font-size: 13px;
+      color: var(--ink);
+    }
+
+    .event-card__program-day small {
+      color: var(--muted);
+      font-size: 12px;
+      line-height: 1.35;
+    }
+
     .event-actions {
       display: flex;
       flex-wrap: wrap;
@@ -2655,15 +2687,18 @@
         <span>${escapeHtml(eventTimeText(event))}</span>
         <span>Voltado para: ${escapeHtml(event.audience || "Toda a igreja")}</span>
         <span>Endereço: ${escapeHtml(event.address || "A confirmar")}</span>
-        ${eventProgramHtml(event)}
       `;
     }
 
-    function eventProgramHtml(event) {
+    function eventProgramDays(event) {
       const schedule = Array.isArray(event.eventSchedule) ? event.eventSchedule : [];
-      const daysWithMoments = schedule
+      return schedule
         .map((day, index) => ({ ...day, dayNumber: index + 1 }))
         .filter((day) => Array.isArray(day.moments) && day.moments.length);
+    }
+
+    function eventProgramHtml(event) {
+      const daysWithMoments = eventProgramDays(event);
       if (!daysWithMoments.length) return "";
       return `
         <span class="event-program">
@@ -2678,6 +2713,30 @@
                 ${day.moments.map((moment) => `
                   <small>${escapeHtml(moment.startsAt || "A confirmar")} - ${escapeHtml(moment.endsAt || "A confirmar")}: ${escapeHtml(moment.theme || "Momento")}</small>
                 `).join("")}
+              </span>
+            `;
+          }).join("")}
+        </span>
+      `;
+    }
+
+    function eventProgramCardHtml(event) {
+      const daysWithMoments = eventProgramDays(event);
+      if (!daysWithMoments.length) return "";
+      return `
+        <span class="event-card__program">
+          <strong class="event-card__program-title">Programação do evento</strong>
+          ${daysWithMoments.map((day) => {
+            const dayLabel = /^\d{4}-\d{2}-\d{2}$/.test(day.date || "")
+              ? new Date(`${day.date}T12:00:00`).toLocaleDateString("pt-BR", { weekday: "short", day: "2-digit", month: "2-digit" })
+              : `Dia ${day.dayNumber}`;
+            return `
+              <span class="event-card__program-day">
+                <strong>${escapeHtml(dayLabel)}</strong>
+                ${day.moments.slice(0, 4).map((moment) => `
+                  <small>${escapeHtml(moment.startsAt || "A confirmar")} - ${escapeHtml(moment.endsAt || "A confirmar")}: ${escapeHtml(moment.theme || "Momento")}</small>
+                `).join("")}
+                ${day.moments.length > 4 ? `<small>+ ${day.moments.length - 4} momento(s)</small>` : ""}
               </span>
             `;
           }).join("")}
@@ -2728,6 +2787,7 @@
               <span class="badge ${event.paid ? "badge--pending" : "badge--paid"}">${event.paid ? "Pago" : "Gratuito"}</span>
               <span class="badge badge--review">${used}/${event.capacity} vagas</span>
             </span>
+            ${eventProgramCardHtml(event)}
             <span>${available} vaga(s) disponível(is)</span>
             <span class="event-actions">
               <a class="map-link" href="${escapeHtml(event.mapsUrl)}" target="_blank" rel="noopener" data-map-link>Ver no Maps</a>
