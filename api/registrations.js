@@ -143,6 +143,7 @@ async function notifyRegistration(record) {
           eventDescription: record.eventDescription,
           eventDate: record.eventDate,
           eventDates: record.eventDates,
+          eventSchedule: record.eventSchedule,
           eventDurationDays: record.eventDurationDays,
           eventDays: record.eventDays,
           eventDaysLabels: record.eventDaysLabels,

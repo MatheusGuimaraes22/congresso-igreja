@@ -45,10 +45,13 @@ function handleRegistration(payload) {
   registration.email = userEmail;
 
   var calendar = CalendarApp.getCalendarById(CALENDAR_ID);
-  var start = buildDate(registration.eventDate, registration.eventStartsAt, 19);
+  var hasEventSchedule = Array.isArray(registration.eventSchedule) && registration.eventSchedule.length;
+  var firstSchedule = hasEventSchedule ? registration.eventSchedule[0] : {};
+  var lastSchedule = hasEventSchedule ? registration.eventSchedule[registration.eventSchedule.length - 1] : {};
+  var start = buildDate(firstSchedule.date || registration.eventDate, firstSchedule.startsAt || registration.eventStartsAt, 19);
   var hasEventDates = Array.isArray(registration.eventDates) && registration.eventDates.length;
-  var endDate = hasEventDates ? registration.eventDates[registration.eventDates.length - 1] : registration.eventDate;
-  var end = buildDate(endDate, registration.eventEndsAt, 21);
+  var endDate = lastSchedule.date || (hasEventDates ? registration.eventDates[registration.eventDates.length - 1] : registration.eventDate);
+  var end = buildDate(endDate, lastSchedule.endsAt || registration.eventEndsAt, 21);
   if (!hasEventDates) end.setDate(end.getDate() + Math.max(0, Number(registration.eventDurationDays || 1) - 1));
   var title = registration.eventName + " - " + (registration.fullName || "Inscrito");
 

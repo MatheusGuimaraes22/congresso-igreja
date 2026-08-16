@@ -1287,10 +1287,12 @@
                   </select>
                 </div>
                 <input id="eventDateInput" name="date" type="hidden">
+                <input id="eventStartsInput" name="startsAt" type="hidden">
+                <input id="eventEndsInput" name="endsAt" type="hidden">
                 <div class="field field--full">
-                  <label>Datas do evento *</label>
+                  <label>Datas e horários do evento *</label>
                   <div class="grid" id="eventDateFields"></div>
-                  <span class="hint">Informe a data correspondente a cada dia do evento.</span>
+                  <span class="hint">Informe data, início e término de cada dia do evento.</span>
                 </div>
                 <div class="field">
                   <label for="eventPaidInput">Tipo de inscrição *</label>
@@ -1302,14 +1304,6 @@
                 <div class="field">
                   <label for="eventCapacityInput">Número de vagas *</label>
                   <input id="eventCapacityInput" name="capacity" type="number" min="1" value="450" required>
-                </div>
-                <div class="field">
-                  <label for="eventStartsInput">Horário de início *</label>
-                  <input id="eventStartsInput" name="startsAt" placeholder="Ex.: 19h30" required>
-                </div>
-                <div class="field">
-                  <label for="eventEndsInput">Horário de término *</label>
-                  <input id="eventEndsInput" name="endsAt" placeholder="Ex.: 22h00" required>
                 </div>
                 <div class="field">
                   <label for="eventAudienceInput">Para quem é voltado *</label>
@@ -1542,6 +1536,7 @@
       const imageUrls = normalizeImageUrls(event);
       const durationDays = Math.min(7, Math.max(1, Number(event.durationDays || event.duration_days || 1)));
       const eventDates = normalizeEventDates(event, durationDays);
+      const eventSchedule = normalizeEventSchedule(event, durationDays, eventDates);
       return {
         key,
         name,
@@ -1555,9 +1550,10 @@
         imageUrls,
         date: eventDates[0] || String(event.date || "").trim(),
         eventDates,
+        eventSchedule,
         durationDays,
-        startsAt: String(event.startsAt || "A confirmar").trim(),
-        endsAt: String(event.endsAt || "A confirmar").trim()
+        startsAt: eventSchedule[0]?.startsAt || String(event.startsAt || "A confirmar").trim(),
+        endsAt: eventSchedule[eventSchedule.length - 1]?.endsAt || String(event.endsAt || "A confirmar").trim()
       };
     }
 
@@ -1588,6 +1584,31 @@
         const date = new Date(`${firstDate}T12:00:00`);
         date.setDate(date.getDate() + index);
         return date.toISOString().slice(0, 10);
+      });
+    }
+
+    function normalizeEventSchedule(event = {}, durationDays = 1, eventDates = []) {
+      const rawList = event.eventSchedule || event.event_schedule;
+      const fallbackStartsAt = String(event.startsAt || event.starts_at || "A confirmar").trim();
+      const fallbackEndsAt = String(event.endsAt || event.ends_at || "A confirmar").trim();
+      let entries = [];
+      if (Array.isArray(rawList)) {
+        entries = rawList;
+      } else if (typeof rawList === "string" && rawList.trim()) {
+        try {
+          const parsed = JSON.parse(rawList);
+          if (Array.isArray(parsed)) entries = parsed;
+        } catch {
+          entries = [];
+        }
+      }
+      return Array.from({ length: durationDays }, (_, index) => {
+        const entry = entries[index] || {};
+        return {
+          date: String(entry.date || eventDates[index] || "").trim(),
+          startsAt: String(entry.startsAt || entry.starts_at || fallbackStartsAt).trim(),
+          endsAt: String(entry.endsAt || entry.ends_at || fallbackEndsAt).trim()
+        };
       });
     }
 
@@ -2359,20 +2380,38 @@
       const dateText = days.length > 1
         ? `${days[0].label} a ${days[days.length - 1].label}`
         : days[0]?.label || "A confirmar";
-      return `Data: ${dateText} | Início: ${event.startsAt || "A confirmar"} | Término: ${event.endsAt || "A confirmar"}`;
+      const firstStart = days[0]?.startsAt || event.startsAt || "A confirmar";
+      const lastEnd = days[days.length - 1]?.endsAt || event.endsAt || "A confirmar";
+      return `Data: ${dateText} | Início: ${firstStart} | Término: ${lastEnd}`;
     }
 
     function getEventDays(event) {
       const count = Math.min(7, Math.max(1, Number(event.durationDays || 1)));
+      if (Array.isArray(event.eventSchedule) && event.eventSchedule.length) {
+        return event.eventSchedule.slice(0, count).map((item, index) => {
+          const value = /^\d{4}-\d{2}-\d{2}$/.test(item.date || "") ? item.date : `dia-${index + 1}`;
+          const dateLabel = /^\d{4}-\d{2}-\d{2}$/.test(item.date || "")
+            ? new Date(`${item.date}T12:00:00`).toLocaleDateString("pt-BR", { weekday: "short", day: "2-digit", month: "2-digit" })
+            : `Dia ${index + 1}`;
+          return {
+            value,
+            label: `${dateLabel}, ${item.startsAt || "A confirmar"} às ${item.endsAt || "A confirmar"}`,
+            startsAt: item.startsAt,
+            endsAt: item.endsAt
+          };
+        });
+      }
       if (Array.isArray(event.eventDates) && event.eventDates.length) {
         return event.eventDates.slice(0, count).map((value, index) => {
           if (!/^\d{4}-\d{2}-\d{2}$/.test(value)) {
-            return { value: `dia-${index + 1}`, label: `Dia ${index + 1}` };
+            return { value: `dia-${index + 1}`, label: `Dia ${index + 1}`, startsAt: event.startsAt, endsAt: event.endsAt };
           }
           const date = new Date(`${value}T12:00:00`);
           return {
             value,
-            label: date.toLocaleDateString("pt-BR", { weekday: "short", day: "2-digit", month: "2-digit" })
+            label: date.toLocaleDateString("pt-BR", { weekday: "short", day: "2-digit", month: "2-digit" }),
+            startsAt: event.startsAt,
+            endsAt: event.endsAt
           };
         });
       }
@@ -2393,17 +2432,27 @@
       });
     }
 
-    function renderAdminEventDateFields(durationDays = 1, dates = []) {
+    function renderAdminEventDateFields(durationDays = 1, schedule = []) {
       const container = $("#eventDateFields");
       if (!container) return;
       const count = Math.min(7, Math.max(1, Number(durationDays || 1)));
       container.innerHTML = Array.from({ length: count }, (_, index) => `
-        <div class="field">
+        <div class="field field--third">
           <label for="eventDateDay${index + 1}">Dia ${index + 1} *</label>
-          <input id="eventDateDay${index + 1}" name="eventDates" type="date" value="${escapeHtml(dates[index] || "")}" required>
+          <input id="eventDateDay${index + 1}" name="eventDates" type="date" value="${escapeHtml(schedule[index]?.date || "")}" required>
+        </div>
+        <div class="field field--third">
+          <label for="eventStartDay${index + 1}">Início do dia ${index + 1} *</label>
+          <input id="eventStartDay${index + 1}" name="eventStartsAt" placeholder="Ex.: 19h30" value="${escapeHtml(schedule[index]?.startsAt || "")}" required>
+        </div>
+        <div class="field field--third">
+          <label for="eventEndDay${index + 1}">Término do dia ${index + 1} *</label>
+          <input id="eventEndDay${index + 1}" name="eventEndsAt" placeholder="Ex.: 22h00" value="${escapeHtml(schedule[index]?.endsAt || "")}" required>
         </div>
       `).join("");
-      $("#eventDateInput").value = dates[0] || "";
+      $("#eventDateInput").value = schedule[0]?.date || "";
+      $("#eventStartsInput").value = schedule[0]?.startsAt || "";
+      $("#eventEndsInput").value = schedule[schedule.length - 1]?.endsAt || "";
     }
 
     function renderEventDayOptions(event) {
@@ -2675,11 +2724,14 @@
     }
 
     function makeGoogleCalendarLink(record) {
-      const start = calendarDateTime(record.eventDate, record.eventStartsAt, 19);
+      const hasEventSchedule = Array.isArray(record.eventSchedule) && record.eventSchedule.length;
+      const firstSchedule = hasEventSchedule ? record.eventSchedule[0] : {};
+      const lastSchedule = hasEventSchedule ? record.eventSchedule[record.eventSchedule.length - 1] : {};
+      const start = calendarDateTime(firstSchedule.date || record.eventDate, firstSchedule.startsAt || record.eventStartsAt, 19);
       const hasEventDates = Array.isArray(record.eventDates) && record.eventDates.length;
-      const endDate = hasEventDates ? record.eventDates[record.eventDates.length - 1] : record.eventDate;
-      const end = calendarDateTime(endDate, record.eventEndsAt, 21);
-      if (!hasEventDates) end.setDate(end.getDate() + Math.max(0, Number(record.eventDurationDays || 1) - 1));
+      const endDate = lastSchedule.date || (hasEventDates ? record.eventDates[record.eventDates.length - 1] : record.eventDate);
+      const end = calendarDateTime(endDate, lastSchedule.endsAt || record.eventEndsAt, 21);
+      if (!hasEventDates && !hasEventSchedule) end.setDate(end.getDate() + Math.max(0, Number(record.eventDurationDays || 1) - 1));
       const url = new URL("https://calendar.google.com/calendar/render");
       url.searchParams.set("action", "TEMPLATE");
       url.searchParams.set("text", record.eventName || "Evento ICC");
@@ -2690,11 +2742,14 @@
     }
 
     function downloadIcs(record) {
-      const start = calendarDateTime(record.eventDate, record.eventStartsAt, 19);
+      const hasEventSchedule = Array.isArray(record.eventSchedule) && record.eventSchedule.length;
+      const firstSchedule = hasEventSchedule ? record.eventSchedule[0] : {};
+      const lastSchedule = hasEventSchedule ? record.eventSchedule[record.eventSchedule.length - 1] : {};
+      const start = calendarDateTime(firstSchedule.date || record.eventDate, firstSchedule.startsAt || record.eventStartsAt, 19);
       const hasEventDates = Array.isArray(record.eventDates) && record.eventDates.length;
-      const endDate = hasEventDates ? record.eventDates[record.eventDates.length - 1] : record.eventDate;
-      const end = calendarDateTime(endDate, record.eventEndsAt, 21);
-      if (!hasEventDates) end.setDate(end.getDate() + Math.max(0, Number(record.eventDurationDays || 1) - 1));
+      const endDate = lastSchedule.date || (hasEventDates ? record.eventDates[record.eventDates.length - 1] : record.eventDate);
+      const end = calendarDateTime(endDate, lastSchedule.endsAt || record.eventEndsAt, 21);
+      if (!hasEventDates && !hasEventSchedule) end.setDate(end.getDate() + Math.max(0, Number(record.eventDurationDays || 1) - 1));
       const ics = [
         "BEGIN:VCALENDAR",
         "VERSION:2.0",
@@ -2731,6 +2786,7 @@
           eventDescription: record.eventDescription,
           eventDate: record.eventDate,
           eventDates: record.eventDates,
+          eventSchedule: record.eventSchedule,
           eventDurationDays: record.eventDurationDays,
           eventDays: record.eventDays,
           eventDaysLabels: record.eventDaysLabels,
@@ -2803,6 +2859,7 @@
       record.eventAudience = event ? event.audience : "";
       record.eventDate = event ? event.date : "";
       record.eventDates = event ? event.eventDates || [] : [];
+      record.eventSchedule = event ? event.eventSchedule || [] : [];
       record.eventDurationDays = event ? event.durationDays : 1;
       record.eventStartsAt = event ? event.startsAt : "";
       record.eventEndsAt = event ? event.endsAt : "";
@@ -3014,11 +3071,9 @@
       $("#eventKeyInput").value = event ? event.key : "";
       $("#eventNameInput").value = event ? event.name : "";
       $("#eventDurationInput").value = event ? String(event.durationDays || 1) : "1";
-      renderAdminEventDateFields(event ? event.durationDays || 1 : 1, event ? event.eventDates || [] : []);
+      renderAdminEventDateFields(event ? event.durationDays || 1 : 1, event ? event.eventSchedule || [] : []);
       $("#eventPaidInput").value = event && event.paid ? "true" : "false";
       $("#eventCapacityInput").value = event ? event.capacity : "450";
-      $("#eventStartsInput").value = event ? event.startsAt : "";
-      $("#eventEndsInput").value = event ? event.endsAt : "";
       $("#eventAudienceInput").value = event ? event.audience : "";
       $("#eventAddressInput").value = event ? event.address : "";
       $("#eventMapsInput").value = event ? event.mapsUrl : "";
@@ -3630,12 +3685,26 @@
     });
 
     $("#eventDurationInput").addEventListener("change", (event) => {
-      const currentDates = new FormData($("#adminEventForm")).getAll("eventDates");
-      renderAdminEventDateFields(event.target.value, currentDates);
+      const formData = new FormData($("#adminEventForm"));
+      const currentDates = formData.getAll("eventDates");
+      const currentStarts = formData.getAll("eventStartsAt");
+      const currentEnds = formData.getAll("eventEndsAt");
+      const currentSchedule = currentDates.map((date, index) => ({
+        date,
+        startsAt: currentStarts[index] || "",
+        endsAt: currentEnds[index] || ""
+      }));
+      renderAdminEventDateFields(event.target.value, currentSchedule);
     });
 
     $("#eventDateFields").addEventListener("input", () => {
-      $("#eventDateInput").value = new FormData($("#adminEventForm")).getAll("eventDates")[0] || "";
+      const formData = new FormData($("#adminEventForm"));
+      const dates = formData.getAll("eventDates");
+      const starts = formData.getAll("eventStartsAt");
+      const ends = formData.getAll("eventEndsAt");
+      $("#eventDateInput").value = dates[0] || "";
+      $("#eventStartsInput").value = starts[0] || "";
+      $("#eventEndsInput").value = ends[ends.length - 1] || "";
     });
 
     $("#adminEventForm").addEventListener("submit", async (event) => {
@@ -3643,9 +3712,22 @@
       const formData = new FormData(event.target);
       const data = Object.fromEntries(formData.entries());
       data.eventDates = formData.getAll("eventDates").map((value) => String(value || "").trim()).filter(Boolean);
+      const eventStartsAt = formData.getAll("eventStartsAt").map((value) => String(value || "").trim());
+      const eventEndsAt = formData.getAll("eventEndsAt").map((value) => String(value || "").trim());
+      data.eventSchedule = data.eventDates.map((date, index) => ({
+        date,
+        startsAt: eventStartsAt[index] || "",
+        endsAt: eventEndsAt[index] || ""
+      }));
       data.date = data.eventDates[0] || "";
+      data.startsAt = data.eventSchedule[0]?.startsAt || "";
+      data.endsAt = data.eventSchedule[data.eventSchedule.length - 1]?.endsAt || "";
       if (data.eventDates.length !== Number(data.durationDays || 1)) {
         showMessage($("#adminEventMessage"), "Evento nao salvo.", "Informe todas as datas do evento.");
+        return;
+      }
+      if (data.eventSchedule.some((item) => !item.startsAt || !item.endsAt)) {
+        showMessage($("#adminEventMessage"), "Evento nao salvo.", "Informe horario de inicio e termino em todos os dias.");
         return;
       }
       data.imageUrls = getEventFormImages();

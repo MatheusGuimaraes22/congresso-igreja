@@ -24,6 +24,7 @@ function normalizeEvent(event = {}) {
   const imageUrls = normalizeImageUrls(event);
   const durationDays = Math.min(7, Math.max(1, Number(event.durationDays || event.duration_days || 1)));
   const eventDates = normalizeEventDates(event, durationDays);
+  const eventSchedule = normalizeEventSchedule(event, durationDays, eventDates);
   return {
     key,
     name,
@@ -37,9 +38,10 @@ function normalizeEvent(event = {}) {
     imageUrls,
     date: eventDates[0] || String(event.date || event.event_date || "").trim(),
     eventDates,
+    eventSchedule,
     durationDays,
-    startsAt: String(event.startsAt || event.starts_at || "A confirmar").trim(),
-    endsAt: String(event.endsAt || event.ends_at || "A confirmar").trim()
+    startsAt: eventSchedule[0]?.startsAt || String(event.startsAt || event.starts_at || "A confirmar").trim(),
+    endsAt: eventSchedule[eventSchedule.length - 1]?.endsAt || String(event.endsAt || event.ends_at || "A confirmar").trim()
   };
 }
 
@@ -70,6 +72,31 @@ function normalizeEventDates(event = {}, durationDays = 1) {
     const date = new Date(`${firstDate}T12:00:00`);
     date.setDate(date.getDate() + index);
     return date.toISOString().slice(0, 10);
+  });
+}
+
+function normalizeEventSchedule(event = {}, durationDays = 1, eventDates = []) {
+  const rawList = event.eventSchedule || event.event_schedule;
+  const fallbackStartsAt = String(event.startsAt || event.starts_at || "A confirmar").trim();
+  const fallbackEndsAt = String(event.endsAt || event.ends_at || "A confirmar").trim();
+  let entries = [];
+  if (Array.isArray(rawList)) {
+    entries = rawList;
+  } else if (typeof rawList === "string" && rawList.trim()) {
+    try {
+      const parsed = JSON.parse(rawList);
+      if (Array.isArray(parsed)) entries = parsed;
+    } catch (_) {
+      entries = [];
+    }
+  }
+  return Array.from({ length: durationDays }, (_, index) => {
+    const entry = entries[index] || {};
+    return {
+      date: String(entry.date || eventDates[index] || "").trim(),
+      startsAt: String(entry.startsAt || entry.starts_at || fallbackStartsAt).trim(),
+      endsAt: String(entry.endsAt || entry.ends_at || fallbackEndsAt).trim()
+    };
   });
 }
 
