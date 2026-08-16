@@ -22,6 +22,8 @@ function normalizeEvent(event = {}) {
   const key = String(event.key || slugify(name)).trim();
   const address = String(event.address || "Igreja Reformada Comunidade da Cruz").trim();
   const imageUrls = normalizeImageUrls(event);
+  const durationDays = Math.min(7, Math.max(1, Number(event.durationDays || event.duration_days || 1)));
+  const eventDates = normalizeEventDates(event, durationDays);
   return {
     key,
     name,
@@ -33,11 +35,42 @@ function normalizeEvent(event = {}) {
     mapsUrl: String(event.mapsUrl || event.maps_url || `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(address)}`).trim(),
     imageUrl: imageUrls[0] || "",
     imageUrls,
-    date: String(event.date || event.event_date || "").trim(),
-    durationDays: Math.min(7, Math.max(1, Number(event.durationDays || event.duration_days || 1))),
+    date: eventDates[0] || String(event.date || event.event_date || "").trim(),
+    eventDates,
+    durationDays,
     startsAt: String(event.startsAt || event.starts_at || "A confirmar").trim(),
     endsAt: String(event.endsAt || event.ends_at || "A confirmar").trim()
   };
+}
+
+function normalizeEventDates(event = {}, durationDays = 1) {
+  const rawValues = [];
+  const rawList = event.eventDates || event.event_dates;
+  if (Array.isArray(rawList)) {
+    rawValues.push(...rawList);
+  } else if (typeof rawList === "string" && rawList.trim()) {
+    try {
+      const parsed = JSON.parse(rawList);
+      if (Array.isArray(parsed)) rawValues.push(...parsed);
+      else rawValues.push(rawList);
+    } catch (_) {
+      rawValues.push(...rawList.split(/\n|,/));
+    }
+  }
+  const cleanDates = rawValues
+    .map((value) => String(value || "").trim())
+    .filter((value) => /^\d{4}-\d{2}-\d{2}$/.test(value))
+    .slice(0, durationDays);
+
+  if (cleanDates.length) return cleanDates;
+
+  const firstDate = String(event.date || event.event_date || "").trim();
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(firstDate)) return [];
+  return Array.from({ length: durationDays }, (_, index) => {
+    const date = new Date(`${firstDate}T12:00:00`);
+    date.setDate(date.getDate() + index);
+    return date.toISOString().slice(0, 10);
+  });
 }
 
 function normalizeImageUrls(event = {}) {

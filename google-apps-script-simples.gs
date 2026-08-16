@@ -46,8 +46,10 @@ function handleRegistration(payload) {
 
   var calendar = CalendarApp.getCalendarById(CALENDAR_ID);
   var start = buildDate(registration.eventDate, registration.eventStartsAt, 19);
-  var end = buildDate(registration.eventDate, registration.eventEndsAt, 21);
-  end.setDate(end.getDate() + Math.max(0, Number(registration.eventDurationDays || 1) - 1));
+  var hasEventDates = Array.isArray(registration.eventDates) && registration.eventDates.length;
+  var endDate = hasEventDates ? registration.eventDates[registration.eventDates.length - 1] : registration.eventDate;
+  var end = buildDate(endDate, registration.eventEndsAt, 21);
+  if (!hasEventDates) end.setDate(end.getDate() + Math.max(0, Number(registration.eventDurationDays || 1) - 1));
   var title = registration.eventName + " - " + (registration.fullName || "Inscrito");
 
   var event = calendar.createEvent(title, start, end, {

@@ -1275,10 +1275,6 @@
                   <input id="eventNameInput" name="name" required>
                 </div>
                 <div class="field">
-                  <label for="eventDateInput">Data de início do evento *</label>
-                  <input id="eventDateInput" name="date" type="date" required>
-                </div>
-                <div class="field">
                   <label for="eventDurationInput">Quantidade de dias *</label>
                   <select id="eventDurationInput" name="durationDays" required>
                     <option value="1">1 dia</option>
@@ -1289,6 +1285,12 @@
                     <option value="6">6 dias</option>
                     <option value="7">7 dias</option>
                   </select>
+                </div>
+                <input id="eventDateInput" name="date" type="hidden">
+                <div class="field field--full">
+                  <label>Datas do evento *</label>
+                  <div class="grid" id="eventDateFields"></div>
+                  <span class="hint">Informe a data correspondente a cada dia do evento.</span>
                 </div>
                 <div class="field">
                   <label for="eventPaidInput">Tipo de inscrição *</label>
@@ -1538,6 +1540,8 @@
       const key = String(event.key || slugify(name)).trim();
       const address = String(event.address || DEFAULT_EVENT_PLACE.address).trim();
       const imageUrls = normalizeImageUrls(event);
+      const durationDays = Math.min(7, Math.max(1, Number(event.durationDays || event.duration_days || 1)));
+      const eventDates = normalizeEventDates(event, durationDays);
       return {
         key,
         name,
@@ -1549,11 +1553,42 @@
         mapsUrl: String(event.mapsUrl || `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(address)}`).trim(),
         imageUrl: imageUrls[0] || "",
         imageUrls,
-        date: String(event.date || "").trim(),
-        durationDays: Math.min(7, Math.max(1, Number(event.durationDays || event.duration_days || 1))),
+        date: eventDates[0] || String(event.date || "").trim(),
+        eventDates,
+        durationDays,
         startsAt: String(event.startsAt || "A confirmar").trim(),
         endsAt: String(event.endsAt || "A confirmar").trim()
       };
+    }
+
+    function normalizeEventDates(event = {}, durationDays = 1) {
+      const rawValues = [];
+      const rawList = event.eventDates || event.event_dates;
+      if (Array.isArray(rawList)) {
+        rawValues.push(...rawList);
+      } else if (typeof rawList === "string" && rawList.trim()) {
+        try {
+          const parsed = JSON.parse(rawList);
+          if (Array.isArray(parsed)) rawValues.push(...parsed);
+          else rawValues.push(rawList);
+        } catch {
+          rawValues.push(...rawList.split(/\n|,/));
+        }
+      }
+      const cleanDates = rawValues
+        .map((value) => String(value || "").trim())
+        .filter((value) => /^\d{4}-\d{2}-\d{2}$/.test(value))
+        .slice(0, durationDays);
+
+      if (cleanDates.length) return cleanDates;
+
+      const firstDate = String(event.date || event.event_date || "").trim();
+      if (!/^\d{4}-\d{2}-\d{2}$/.test(firstDate)) return [];
+      return Array.from({ length: durationDays }, (_, index) => {
+        const date = new Date(`${firstDate}T12:00:00`);
+        date.setDate(date.getDate() + index);
+        return date.toISOString().slice(0, 10);
+      });
     }
 
     function getEventFormImages() {
@@ -2329,6 +2364,18 @@
 
     function getEventDays(event) {
       const count = Math.min(7, Math.max(1, Number(event.durationDays || 1)));
+      if (Array.isArray(event.eventDates) && event.eventDates.length) {
+        return event.eventDates.slice(0, count).map((value, index) => {
+          if (!/^\d{4}-\d{2}-\d{2}$/.test(value)) {
+            return { value: `dia-${index + 1}`, label: `Dia ${index + 1}` };
+          }
+          const date = new Date(`${value}T12:00:00`);
+          return {
+            value,
+            label: date.toLocaleDateString("pt-BR", { weekday: "short", day: "2-digit", month: "2-digit" })
+          };
+        });
+      }
       if (!event.date) {
         return Array.from({ length: count }, (_, index) => ({
           value: `dia-${index + 1}`,
@@ -2344,6 +2391,19 @@
           label: date.toLocaleDateString("pt-BR", { weekday: "short", day: "2-digit", month: "2-digit" })
         };
       });
+    }
+
+    function renderAdminEventDateFields(durationDays = 1, dates = []) {
+      const container = $("#eventDateFields");
+      if (!container) return;
+      const count = Math.min(7, Math.max(1, Number(durationDays || 1)));
+      container.innerHTML = Array.from({ length: count }, (_, index) => `
+        <div class="field">
+          <label for="eventDateDay${index + 1}">Dia ${index + 1} *</label>
+          <input id="eventDateDay${index + 1}" name="eventDates" type="date" value="${escapeHtml(dates[index] || "")}" required>
+        </div>
+      `).join("");
+      $("#eventDateInput").value = dates[0] || "";
     }
 
     function renderEventDayOptions(event) {
@@ -2616,8 +2676,10 @@
 
     function makeGoogleCalendarLink(record) {
       const start = calendarDateTime(record.eventDate, record.eventStartsAt, 19);
-      const end = calendarDateTime(record.eventDate, record.eventEndsAt, 21);
-      end.setDate(end.getDate() + Math.max(0, Number(record.eventDurationDays || 1) - 1));
+      const hasEventDates = Array.isArray(record.eventDates) && record.eventDates.length;
+      const endDate = hasEventDates ? record.eventDates[record.eventDates.length - 1] : record.eventDate;
+      const end = calendarDateTime(endDate, record.eventEndsAt, 21);
+      if (!hasEventDates) end.setDate(end.getDate() + Math.max(0, Number(record.eventDurationDays || 1) - 1));
       const url = new URL("https://calendar.google.com/calendar/render");
       url.searchParams.set("action", "TEMPLATE");
       url.searchParams.set("text", record.eventName || "Evento ICC");
@@ -2629,8 +2691,10 @@
 
     function downloadIcs(record) {
       const start = calendarDateTime(record.eventDate, record.eventStartsAt, 19);
-      const end = calendarDateTime(record.eventDate, record.eventEndsAt, 21);
-      end.setDate(end.getDate() + Math.max(0, Number(record.eventDurationDays || 1) - 1));
+      const hasEventDates = Array.isArray(record.eventDates) && record.eventDates.length;
+      const endDate = hasEventDates ? record.eventDates[record.eventDates.length - 1] : record.eventDate;
+      const end = calendarDateTime(endDate, record.eventEndsAt, 21);
+      if (!hasEventDates) end.setDate(end.getDate() + Math.max(0, Number(record.eventDurationDays || 1) - 1));
       const ics = [
         "BEGIN:VCALENDAR",
         "VERSION:2.0",
@@ -2666,6 +2730,7 @@
           eventName: record.eventName,
           eventDescription: record.eventDescription,
           eventDate: record.eventDate,
+          eventDates: record.eventDates,
           eventDurationDays: record.eventDurationDays,
           eventDays: record.eventDays,
           eventDaysLabels: record.eventDaysLabels,
@@ -2737,6 +2802,7 @@
       record.eventMapsUrl = event ? event.mapsUrl : "";
       record.eventAudience = event ? event.audience : "";
       record.eventDate = event ? event.date : "";
+      record.eventDates = event ? event.eventDates || [] : [];
       record.eventDurationDays = event ? event.durationDays : 1;
       record.eventStartsAt = event ? event.startsAt : "";
       record.eventEndsAt = event ? event.endsAt : "";
@@ -2947,8 +3013,8 @@
       form.classList.remove("is-hidden");
       $("#eventKeyInput").value = event ? event.key : "";
       $("#eventNameInput").value = event ? event.name : "";
-      $("#eventDateInput").value = event ? event.date || "" : "";
       $("#eventDurationInput").value = event ? String(event.durationDays || 1) : "1";
+      renderAdminEventDateFields(event ? event.durationDays || 1 : 1, event ? event.eventDates || [] : []);
       $("#eventPaidInput").value = event && event.paid ? "true" : "false";
       $("#eventCapacityInput").value = event ? event.capacity : "450";
       $("#eventStartsInput").value = event ? event.startsAt : "";
@@ -2969,6 +3035,7 @@
       $("#eventKeyInput").value = "";
       $("#eventCapacityInput").value = "450";
       $("#eventDurationInput").value = "1";
+      renderAdminEventDateFields(1, []);
       $("#eventImageFileInput").value = "";
       setEventFormImages([]);
       form.querySelector("button[type='submit']").textContent = "Criar evento";
@@ -3562,9 +3629,25 @@
       setEventFormImages(current);
     });
 
+    $("#eventDurationInput").addEventListener("change", (event) => {
+      const currentDates = new FormData($("#adminEventForm")).getAll("eventDates");
+      renderAdminEventDateFields(event.target.value, currentDates);
+    });
+
+    $("#eventDateFields").addEventListener("input", () => {
+      $("#eventDateInput").value = new FormData($("#adminEventForm")).getAll("eventDates")[0] || "";
+    });
+
     $("#adminEventForm").addEventListener("submit", async (event) => {
       event.preventDefault();
-      const data = Object.fromEntries(new FormData(event.target).entries());
+      const formData = new FormData(event.target);
+      const data = Object.fromEntries(formData.entries());
+      data.eventDates = formData.getAll("eventDates").map((value) => String(value || "").trim()).filter(Boolean);
+      data.date = data.eventDates[0] || "";
+      if (data.eventDates.length !== Number(data.durationDays || 1)) {
+        showMessage($("#adminEventMessage"), "Evento nao salvo.", "Informe todas as datas do evento.");
+        return;
+      }
       data.imageUrls = getEventFormImages();
       const pendingFiles = Array.from($("#eventImageFileInput").files || []);
       if (pendingFiles.length && data.imageUrls.length < 5) {

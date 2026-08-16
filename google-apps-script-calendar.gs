@@ -33,8 +33,10 @@ function doPost(e) {
 function createCalendarInvite(registration) {
   const calendar = CalendarApp.getCalendarById(CALENDAR_ID);
   const start = buildDate(registration.eventDate, registration.eventStartsAt, DEFAULT_START_HOUR);
-  const end = buildDate(registration.eventDate, registration.eventEndsAt, DEFAULT_END_HOUR);
-  end.setDate(end.getDate() + Math.max(0, Number(registration.eventDurationDays || 1) - 1));
+  const hasEventDates = Array.isArray(registration.eventDates) && registration.eventDates.length;
+  const endDate = hasEventDates ? registration.eventDates[registration.eventDates.length - 1] : registration.eventDate;
+  const end = buildDate(endDate, registration.eventEndsAt, DEFAULT_END_HOUR);
+  if (!hasEventDates) end.setDate(end.getDate() + Math.max(0, Number(registration.eventDurationDays || 1) - 1));
   const title = `${registration.eventName} - ${registration.fullName || "Inscrito"}`;
   const description = [
     registration.eventDescription || "",
