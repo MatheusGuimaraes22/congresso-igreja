@@ -2694,7 +2694,7 @@
       const schedule = Array.isArray(event.eventSchedule) ? event.eventSchedule : [];
       return schedule
         .map((day, index) => ({ ...day, dayNumber: index + 1 }))
-        .filter((day) => Array.isArray(day.moments) && day.moments.length);
+        .filter((day) => (Array.isArray(day.moments) && day.moments.length) || day.startsAt || day.endsAt);
     }
 
     function eventProgramHtml(event) {
@@ -2710,9 +2710,11 @@
             return `
               <span class="event-program__day">
                 <strong>${escapeHtml(dayLabel)}</strong>
-                ${day.moments.map((moment) => `
-                  <small>${escapeHtml(moment.startsAt || "A confirmar")} - ${escapeHtml(moment.endsAt || "A confirmar")}: ${escapeHtml(moment.theme || "Momento")}</small>
-                `).join("")}
+                ${day.moments.length
+                  ? day.moments.map((moment) => `
+                    <small>${escapeHtml(moment.startsAt || "A confirmar")} - ${escapeHtml(moment.endsAt || "A confirmar")}: ${escapeHtml(moment.theme || "Momento")}</small>
+                  `).join("")
+                  : `<small>${escapeHtml(day.startsAt || "A confirmar")} - ${escapeHtml(day.endsAt || "A confirmar")}: programação do dia</small>`}
               </span>
             `;
           }).join("")}
@@ -2733,9 +2735,11 @@
             return `
               <span class="event-card__program-day">
                 <strong>${escapeHtml(dayLabel)}</strong>
-                ${day.moments.slice(0, 4).map((moment) => `
-                  <small>${escapeHtml(moment.startsAt || "A confirmar")} - ${escapeHtml(moment.endsAt || "A confirmar")}: ${escapeHtml(moment.theme || "Momento")}</small>
-                `).join("")}
+                ${day.moments.length
+                  ? day.moments.slice(0, 4).map((moment) => `
+                    <small>${escapeHtml(moment.startsAt || "A confirmar")} - ${escapeHtml(moment.endsAt || "A confirmar")}: ${escapeHtml(moment.theme || "Momento")}</small>
+                  `).join("")
+                  : `<small>${escapeHtml(day.startsAt || "A confirmar")} - ${escapeHtml(day.endsAt || "A confirmar")}: programação do dia</small>`}
                 ${day.moments.length > 4 ? `<small>+ ${day.moments.length - 4} momento(s)</small>` : ""}
               </span>
             `;
