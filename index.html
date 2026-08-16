@@ -1057,89 +1057,21 @@
                   <input id="fullName" name="fullName" autocomplete="name" required>
                 </div>
                 <div class="field">
-                  <label for="email">E-mail *</label>
-                  <input id="email" name="email" type="email" autocomplete="email" required>
+                  <label for="cpf">CPF *</label>
+                  <input id="cpf" name="cpf" inputmode="numeric" autocomplete="off" placeholder="000.000.000-00" maxlength="14" required>
+                </div>
+                <div class="field field--full">
+                  <label>Dias de participação *</label>
+                  <div class="radio-row" id="eventDaysOptions"></div>
+                  <span class="hint">Marque todos os dias do evento em que você estará presente.</span>
                 </div>
                 <div class="field">
                   <label for="phone">Celular/WhatsApp *</label>
                   <input id="phone" name="phone" inputmode="tel" autocomplete="tel" placeholder="(00) 00000-0000" maxlength="15" required>
                 </div>
                 <div class="field">
-                  <label for="cpf">CPF *</label>
-                  <input id="cpf" name="cpf" inputmode="numeric" autocomplete="off" placeholder="000.000.000-00" maxlength="14" required>
-                </div>
-                <div class="field field--full">
-                  <label for="church">Unidade ou nome da igreja *</label>
-                  <input id="church" name="church" autocomplete="organization" required>
-                </div>
-              </div>
-            </fieldset>
-
-            <fieldset>
-              <legend>Endereço</legend>
-              <div class="grid">
-                <div class="field address-cep">
-                  <label for="cep">CEP *</label>
-                  <input id="cep" name="cep" inputmode="numeric" autocomplete="postal-code" placeholder="00000-000" maxlength="9" required>
-                  <span class="hint" id="cepHint">Digite o CEP para buscar rua, bairro, cidade e UF.</span>
-                </div>
-                <div class="field address-street">
-                  <label for="street">Rua *</label>
-                  <input id="street" name="street" autocomplete="address-line1" required>
-                </div>
-                <div class="field address-number">
-                  <label for="number">Número *</label>
-                  <input id="number" name="number" autocomplete="address-line2" required>
-                </div>
-                <div class="field field--third">
-                  <label for="district">Bairro *</label>
-                  <input id="district" name="district" required>
-                </div>
-                <div class="field field--third">
-                  <label for="city">Cidade *</label>
-                  <input id="city" name="city" autocomplete="address-level2" required>
-                </div>
-                <div class="field field--third">
-                  <label for="state">UF *</label>
-                  <input id="state" name="state" autocomplete="address-level1" maxlength="2" required>
-                </div>
-                <div class="field field--full">
-                  <label for="complement">Complemento</label>
-                  <input id="complement" name="complement" autocomplete="address-line3">
-                </div>
-              </div>
-            </fieldset>
-
-            <fieldset>
-              <legend>Transporte</legend>
-              <div class="grid">
-                <div class="field field--full">
-                  <label>Vai precisar de carona para o congresso? *</label>
-                  <div class="radio-row">
-                    <label class="choice"><input type="radio" name="needsRide" value="Sim" required> Sim</label>
-                    <label class="choice"><input type="radio" name="needsRide" value="Não" required> Não</label>
-                  </div>
-                </div>
-                <div class="field field--full">
-                  <label>Tem carro e pode disponibilizar carona? *</label>
-                  <div class="radio-row">
-                    <label class="choice"><input type="radio" name="hasCar" value="Sim" required> Sim</label>
-                    <label class="choice"><input type="radio" name="hasCar" value="Não" required> Não</label>
-                  </div>
-                </div>
-                <div class="field field--third" id="seatsField" hidden>
-                  <label for="seats">Vagas disponíveis</label>
-                  <select id="seats" name="seats">
-                    <option value="">Selecione</option>
-                    <option value="1">1 vaga</option>
-                    <option value="2">2 vagas</option>
-                    <option value="3">3 vagas</option>
-                    <option value="4">4 vagas</option>
-                  </select>
-                </div>
-                <div class="field field--full">
-                  <label for="notes">Observacoes</label>
-                  <textarea id="notes" name="notes" placeholder="Ex.: restricao de horario, ponto de encontro, necessidade especial."></textarea>
+                  <label for="email">E-mail *</label>
+                  <input id="email" name="email" type="email" autocomplete="email" required>
                 </div>
               </div>
             </fieldset>
@@ -1271,7 +1203,7 @@
         <div id="adminPrivate" class="admin-private is-hidden">
           <div class="success is-visible">
             <strong>Painel administrativo liberado.</strong>
-            <p>Use este painel para acompanhar inscritos, pagamentos, caronas, vagas oferecidas e comprovantes.</p>
+            <p>Use este painel para acompanhar inscritos, pagamentos, dias de participação, vagas e comprovantes.</p>
           </div>
           <div class="admin-login">
             <h3>Usuários administrativos</h3>
@@ -1343,8 +1275,20 @@
                   <input id="eventNameInput" name="name" required>
                 </div>
                 <div class="field">
-                  <label for="eventDateInput">Data do evento *</label>
+                  <label for="eventDateInput">Data de início do evento *</label>
                   <input id="eventDateInput" name="date" type="date" required>
+                </div>
+                <div class="field">
+                  <label for="eventDurationInput">Quantidade de dias *</label>
+                  <select id="eventDurationInput" name="durationDays" required>
+                    <option value="1">1 dia</option>
+                    <option value="2">2 dias</option>
+                    <option value="3">3 dias</option>
+                    <option value="4">4 dias</option>
+                    <option value="5">5 dias</option>
+                    <option value="6">6 dias</option>
+                    <option value="7">7 dias</option>
+                  </select>
                 </div>
                 <div class="field">
                   <label for="eventPaidInput">Tipo de inscrição *</label>
@@ -1464,9 +1408,7 @@
     const successBox = $("#successBox");
     const proofSuccessBox = $("#proofSuccessBox");
     const adminSessionKey = `${CONFIG.storageKey}:adminSession`;
-    const cepHint = $("#cepHint");
-    const seatsField = $("#seatsField");
-    const seatsSelect = $("#seats");
+    const eventDaysOptions = $("#eventDaysOptions");
     const moneyLink = CONFIG.churchPaymentUrl;
     let memoryRecords = [];
     let memoryAdminSession = false;
@@ -1608,6 +1550,7 @@
         imageUrl: imageUrls[0] || "",
         imageUrls,
         date: String(event.date || "").trim(),
+        durationDays: Math.min(7, Math.max(1, Number(event.durationDays || event.duration_days || 1))),
         startsAt: String(event.startsAt || "A confirmar").trim(),
         endsAt: String(event.endsAt || "A confirmar").trim()
       };
@@ -2273,11 +2216,6 @@
       return second === Number(cpf[10]);
     }
 
-    function formatCep(value) {
-      const digits = onlyDigits(value).slice(0, 8);
-      return digits.replace(/(\d{5})(\d{1,3})$/, "$1-$2");
-    }
-
     function formatPhone(value) {
       const digits = onlyDigits(value).slice(0, 11);
       if (digits.length <= 10) {
@@ -2382,8 +2320,51 @@
     }
 
     function eventTimeText(event) {
-      const date = event.date ? new Date(`${event.date}T12:00:00`).toLocaleDateString("pt-BR") : "A confirmar";
-      return `Data: ${date} | Início: ${event.startsAt || "A confirmar"} | Término: ${event.endsAt || "A confirmar"}`;
+      const days = getEventDays(event);
+      const dateText = days.length > 1
+        ? `${days[0].label} a ${days[days.length - 1].label}`
+        : days[0]?.label || "A confirmar";
+      return `Data: ${dateText} | Início: ${event.startsAt || "A confirmar"} | Término: ${event.endsAt || "A confirmar"}`;
+    }
+
+    function getEventDays(event) {
+      const count = Math.min(7, Math.max(1, Number(event.durationDays || 1)));
+      if (!event.date) {
+        return Array.from({ length: count }, (_, index) => ({
+          value: `dia-${index + 1}`,
+          label: `Dia ${index + 1}`
+        }));
+      }
+      return Array.from({ length: count }, (_, index) => {
+        const date = new Date(`${event.date}T12:00:00`);
+        date.setDate(date.getDate() + index);
+        const value = date.toISOString().slice(0, 10);
+        return {
+          value,
+          label: date.toLocaleDateString("pt-BR", { weekday: "short", day: "2-digit", month: "2-digit" })
+        };
+      });
+    }
+
+    function renderEventDayOptions(event) {
+      if (!eventDaysOptions) return;
+      const days = getEventDays(event);
+      eventDaysOptions.innerHTML = days.map((day, index) => `
+        <label class="choice">
+          <input type="checkbox" name="eventDays" value="${escapeHtml(day.value)}">
+          ${escapeHtml(day.label)}
+        </label>
+      `).join("");
+    }
+
+    function selectedEventDaysText(record) {
+      if (Array.isArray(record.eventDaysLabels) && record.eventDaysLabels.length) {
+        return record.eventDaysLabels.join(", ");
+      }
+      if (Array.isArray(record.eventDays) && record.eventDays.length) {
+        return record.eventDays.join(", ");
+      }
+      return "Não informado";
     }
 
     function eventDetailsHtml(event) {
@@ -2473,6 +2454,7 @@
         input.required = event.paid;
         if (!event.paid) input.checked = false;
       });
+      renderEventDayOptions(event);
       showTab("inscricao");
     }
 
@@ -2620,16 +2602,6 @@
       return url.toString();
     }
 
-    function buildAddress(record) {
-      return [record.street, record.number, record.district, record.city, record.state, record.cep]
-        .filter(Boolean)
-        .join(", ");
-    }
-
-    function buildMapsLink(record) {
-      return `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(buildAddress(record))}`;
-    }
-
     function calendarDateTime(date, time, fallbackHour) {
       const cleanDate = date || new Date().toISOString().slice(0, 10);
       const digits = String(time || "").match(/(\d{1,2})(?::|h)?(\d{2})?/);
@@ -2645,11 +2617,12 @@
     function makeGoogleCalendarLink(record) {
       const start = calendarDateTime(record.eventDate, record.eventStartsAt, 19);
       const end = calendarDateTime(record.eventDate, record.eventEndsAt, 21);
+      end.setDate(end.getDate() + Math.max(0, Number(record.eventDurationDays || 1) - 1));
       const url = new URL("https://calendar.google.com/calendar/render");
       url.searchParams.set("action", "TEMPLATE");
       url.searchParams.set("text", record.eventName || "Evento ICC");
       url.searchParams.set("dates", `${calendarStamp(start)}/${calendarStamp(end)}`);
-      url.searchParams.set("details", `Inscrição: ${record.id}\nQR Code: ${record.validationLink || makeValidationLink(record)}\n${record.eventDescription || ""}`);
+      url.searchParams.set("details", `Inscrição: ${record.id}\nDias de participação: ${selectedEventDaysText(record)}\nQR Code: ${record.validationLink || makeValidationLink(record)}\n${record.eventDescription || ""}`);
       url.searchParams.set("location", record.eventAddress || "");
       return url.toString();
     }
@@ -2657,6 +2630,7 @@
     function downloadIcs(record) {
       const start = calendarDateTime(record.eventDate, record.eventStartsAt, 19);
       const end = calendarDateTime(record.eventDate, record.eventEndsAt, 21);
+      end.setDate(end.getDate() + Math.max(0, Number(record.eventDurationDays || 1) - 1));
       const ics = [
         "BEGIN:VCALENDAR",
         "VERSION:2.0",
@@ -2667,7 +2641,7 @@
         `DTSTART:${calendarStamp(start)}`,
         `DTEND:${calendarStamp(end)}`,
         `SUMMARY:${record.eventName || "Evento ICC"}`,
-        `DESCRIPTION:Inscrição ${record.id}. QR Code: ${record.validationLink || makeValidationLink(record)}`,
+        `DESCRIPTION:Inscrição ${record.id}. Dias de participação: ${selectedEventDaysText(record)}. QR Code: ${record.validationLink || makeValidationLink(record)}`,
         `LOCATION:${record.eventAddress || ""}`,
         "END:VEVENT",
         "END:VCALENDAR"
@@ -2692,6 +2666,10 @@
           eventName: record.eventName,
           eventDescription: record.eventDescription,
           eventDate: record.eventDate,
+          eventDurationDays: record.eventDurationDays,
+          eventDays: record.eventDays,
+          eventDaysLabels: record.eventDaysLabels,
+          eventDaysText: selectedEventDaysText(record),
           eventStartsAt: record.eventStartsAt,
           eventEndsAt: record.eventEndsAt,
           eventAddress: record.eventAddress,
@@ -2707,7 +2685,7 @@
     function mailtoFor(record, type) {
       if (type === "admin") {
         const subject = `Nova inscrição - ${record.fullName}`;
-        const body = `Nova inscrição recebida para ${CONFIG.churchName}.\n\nEvento: ${record.eventName || "Evento"}\nDescrição: ${record.eventDescription || "Não informada"}\nHorário: ${record.eventTime || "A confirmar"}\nVoltado para: ${record.eventAudience || "Toda a igreja"}\nLocal: ${record.eventAddress || "A confirmar"}\nMaps: ${record.eventMapsUrl || ""}\n\nNome: ${record.fullName}\nE-mail: ${record.email}\nWhatsApp: ${record.phone || "Não informado"}\nCPF: ${record.cpf}\nIgreja: ${record.church}\nEndereço: ${buildAddress(record)}\nPrecisa de carona: ${record.needsRide}\nOferece carona: ${record.hasCar}${record.seats ? ` (${record.seats} vagas)` : ""}\nForma de pagamento: ${record.paymentMethod || "Não informada"}\nStatus de pagamento: ${record.paymentStatus}\nCódigo: ${record.id}\nReferência de pagamento: ${record.paymentReference}\nLink: ${record.registrationLink}\nValidação: ${record.validationLink || makeValidationLink(record)}`;
+        const body = `Nova inscrição recebida para ${CONFIG.churchName}.\n\nEvento: ${record.eventName || "Evento"}\nDescrição: ${record.eventDescription || "Não informada"}\nHorário: ${record.eventTime || "A confirmar"}\nDias de participação: ${selectedEventDaysText(record)}\nVoltado para: ${record.eventAudience || "Toda a igreja"}\nLocal: ${record.eventAddress || "A confirmar"}\nMaps: ${record.eventMapsUrl || ""}\n\nNome: ${record.fullName}\nE-mail: ${record.email}\nWhatsApp: ${record.phone || "Não informado"}\nCPF: ${record.cpf}\nForma de pagamento: ${record.paymentMethod || "Não informada"}\nStatus de pagamento: ${record.paymentStatus}\nCódigo: ${record.id}\nReferência de pagamento: ${record.paymentReference}\nLink: ${record.registrationLink}\nValidação: ${record.validationLink || makeValidationLink(record)}`;
         return `mailto:${encodeURIComponent(CONFIG.adminEmail)}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
       }
 
@@ -2716,34 +2694,10 @@
         ? `Pagamento confirmado - ${CONFIG.churchName}`
         : `Inscrição recebida - ${CONFIG.churchName}`;
       const body = isPaid
-        ? `Olá, ${record.fullName}.\n\nRecebemos a confirmação do seu pagamento para ${record.eventName || CONFIG.churchName}.\n\nHorário: ${record.eventTime || "A confirmar"}\nVoltado para: ${record.eventAudience || "Toda a igreja"}\nLocal: ${record.eventAddress || "A confirmar"}\nMaps: ${record.eventMapsUrl || ""}\nAgenda Google: ${makeGoogleCalendarLink(record)}\n\nSeu código de inscrição: ${record.id}\n\nNos vemos no evento.`
-        : `Olá, ${record.fullName}.\n\nSua inscrição em ${record.eventName || CONFIG.churchName} foi recebida.\n\n${record.eventDescription || ""}\nHorário: ${record.eventTime || "A confirmar"}\nVoltado para: ${record.eventAudience || "Toda a igreja"}\nLocal: ${record.eventAddress || "A confirmar"}\nMaps: ${record.eventMapsUrl || ""}\nAgenda Google: ${makeGoogleCalendarLink(record)}\n\nCódigo de inscrição: ${record.id}\nForma de pagamento: ${record.paymentMethod || "Não informada"}\nReferência de pagamento: ${record.paymentReference}\nQR Code/validação: ${record.validationLink || makeValidationLink(record)}\n\nGuarde o QR Code para apresentar à organização.`;
+        ? `Olá, ${record.fullName}.\n\nRecebemos a confirmação do seu pagamento para ${record.eventName || CONFIG.churchName}.\n\nHorário: ${record.eventTime || "A confirmar"}\nDias de participação: ${selectedEventDaysText(record)}\nVoltado para: ${record.eventAudience || "Toda a igreja"}\nLocal: ${record.eventAddress || "A confirmar"}\nMaps: ${record.eventMapsUrl || ""}\nAgenda Google: ${makeGoogleCalendarLink(record)}\n\nSeu código de inscrição: ${record.id}\n\nNos vemos no evento.`
+        : `Olá, ${record.fullName}.\n\nSua inscrição em ${record.eventName || CONFIG.churchName} foi recebida.\n\n${record.eventDescription || ""}\nHorário: ${record.eventTime || "A confirmar"}\nDias de participação: ${selectedEventDaysText(record)}\nVoltado para: ${record.eventAudience || "Toda a igreja"}\nLocal: ${record.eventAddress || "A confirmar"}\nMaps: ${record.eventMapsUrl || ""}\nAgenda Google: ${makeGoogleCalendarLink(record)}\n\nCódigo de inscrição: ${record.id}\nForma de pagamento: ${record.paymentMethod || "Não informada"}\nReferência de pagamento: ${record.paymentReference}\nQR Code/validação: ${record.validationLink || makeValidationLink(record)}\n\nGuarde o QR Code para apresentar à organização.`;
 
       return `mailto:${encodeURIComponent(record.email)}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
-    }
-
-    async function fetchAddressByCep(cep) {
-      const digits = onlyDigits(cep);
-      if (digits.length !== 8) return;
-
-      cepHint.textContent = "Buscando endereço pelo CEP...";
-      try {
-        const response = await fetch(`https://viacep.com.br/ws/${digits}/json/`);
-        const data = await response.json();
-        if (data.erro) {
-          cepHint.textContent = "CEP não encontrado. Preencha o endereço manualmente.";
-          return;
-        }
-
-        $("#street").value = data.logradouro || "";
-        $("#district").value = data.bairro || "";
-        $("#city").value = data.localidade || "";
-        $("#state").value = data.uf || "";
-        cepHint.textContent = "Endereço preenchido pelo CEP. Confira número e complemento.";
-        $("#number").focus();
-      } catch {
-        cepHint.textContent = "Não foi possível consultar o CEP agora. Preencha manualmente.";
-      }
     }
 
     function makePaymentReference(record) {
@@ -2783,13 +2737,28 @@
       record.eventMapsUrl = event ? event.mapsUrl : "";
       record.eventAudience = event ? event.audience : "";
       record.eventDate = event ? event.date : "";
+      record.eventDurationDays = event ? event.durationDays : 1;
       record.eventStartsAt = event ? event.startsAt : "";
       record.eventEndsAt = event ? event.endsAt : "";
       record.eventTime = event ? eventTimeText(event) : "A confirmar";
+      const eventDays = data.getAll("eventDays");
+      const availableDays = event ? getEventDays(event) : [];
+      record.eventDays = eventDays;
+      record.eventDaysLabels = eventDays.map((value) => availableDays.find((day) => day.value === value)?.label || value);
       record.cpf = formatCpf(record.cpf);
       record.phone = formatPhone(record.phone);
-      record.cep = formatCep(record.cep);
-      record.seats = record.hasCar === "Sim" ? record.seats : "";
+      record.church = "";
+      record.cep = "";
+      record.street = "";
+      record.number = "";
+      record.district = "";
+      record.city = "";
+      record.state = "";
+      record.complement = "";
+      record.needsRide = "";
+      record.hasCar = "";
+      record.seats = "";
+      record.notes = "";
       record.paymentMethod = event && !event.paid ? "Gratuito" : record.paymentMethod || "Não informada";
       record.paymentStatus = event && !event.paid ? "Pago" : "Pendente";
       record.paymentReference = makePaymentReference(record);
@@ -2814,6 +2783,7 @@
         <p>Evento: <strong>${escapeHtml(record.eventName || "Evento")}</strong>.</p>
         <p>${escapeHtml(record.eventDescription || "")}</p>
         <p>Horário: <strong>${escapeHtml(record.eventTime || "A confirmar")}</strong>.</p>
+        <p>Dias escolhidos: <strong>${escapeHtml(selectedEventDaysText(record))}</strong>.</p>
         <p>Voltado para: <strong>${escapeHtml(record.eventAudience || "Toda a igreja")}</strong>.</p>
         <p>Endereço: <a class="map-link" href="${escapeHtml(record.eventMapsUrl || "#")}" target="_blank" rel="noopener">${escapeHtml(record.eventAddress || "A confirmar")}</a>.</p>
         <p>Código: <strong>${record.id}</strong>. Referência de pagamento: <strong>${record.paymentReference}</strong>.</p>
@@ -2907,9 +2877,7 @@
             <tr>
               <th>Inscrito</th>
               <th>CPF</th>
-              <th>Igreja</th>
-              <th>Endereço</th>
-              <th>Transporte</th>
+              <th>Dias</th>
               <th>Pagamento</th>
               <th>Ações</th>
             </tr>
@@ -2924,15 +2892,7 @@
                   <small>${escapeHtml(record.id)}</small>
                 </td>
                 <td>${escapeHtml(record.cpf)}</td>
-                <td>${escapeHtml(record.church)}</td>
-                <td>
-                  ${escapeHtml(buildAddress(record))}<br>
-                  <a class="map-link" href="${buildMapsLink(record)}" target="_blank" rel="noopener">Abrir no Maps</a>
-                </td>
-                <td>
-                  Precisa: <strong>${escapeHtml(record.needsRide)}</strong><br>
-                  Oferece: <strong>${escapeHtml(record.hasCar)}</strong>${record.seats ? `, ${escapeHtml(record.seats)} vagas` : ""}
-                </td>
+                <td>${escapeHtml(selectedEventDaysText(record))}</td>
                 <td>
                   <span class="badge ${record.paymentStatus === "Pago" ? "badge--paid" : record.paymentStatus === "Em análise" || record.paymentStatus === "Comprovante compatível" ? "badge--review" : "badge--pending"}">${escapeHtml(record.paymentStatus)}</span><br>
                   <small>Forma: ${escapeHtml(record.paymentMethod || "Não informada")}</small><br>
@@ -2971,7 +2931,7 @@
           <div class="admin-event-row">
             ${eventImages.length ? `<span class="admin-event-row__thumb"><img src="${escapeHtml(eventImages[0])}" alt="Arte do evento ${escapeHtml(event.name)}" loading="lazy"></span>` : ""}
             <strong>${escapeHtml(event.name)}</strong>
-            <small>${escapeHtml(event.date ? new Date(`${event.date}T12:00:00`).toLocaleDateString("pt-BR") : "Data a confirmar")}</small>
+            <small>${escapeHtml(eventTimeText(event))}</small>
             <div class="admin-event-row__actions">
               <button class="mini" type="button" data-action="edit-event" data-event="${escapeHtml(event.key)}">Editar</button>
               <button class="mini" type="button" data-action="delete-event" data-event="${escapeHtml(event.key)}" ${total ? "disabled" : ""}>${total ? "Há inscrições" : "Excluir"}</button>
@@ -2988,6 +2948,7 @@
       $("#eventKeyInput").value = event ? event.key : "";
       $("#eventNameInput").value = event ? event.name : "";
       $("#eventDateInput").value = event ? event.date || "" : "";
+      $("#eventDurationInput").value = event ? String(event.durationDays || 1) : "1";
       $("#eventPaidInput").value = event && event.paid ? "true" : "false";
       $("#eventCapacityInput").value = event ? event.capacity : "450";
       $("#eventStartsInput").value = event ? event.startsAt : "";
@@ -3007,6 +2968,7 @@
       form.reset();
       $("#eventKeyInput").value = "";
       $("#eventCapacityInput").value = "450";
+      $("#eventDurationInput").value = "1";
       $("#eventImageFileInput").value = "";
       setEventFormImages([]);
       form.querySelector("button[type='submit']").textContent = "Criar evento";
@@ -3041,8 +3003,6 @@
       const paid = eventRows.filter((item) => item.paymentStatus === "Pago").length;
       const review = eventRows.filter((item) => item.paymentStatus === "Em análise" || item.paymentStatus === "Comprovante compatível").length;
       const pending = eventRows.length - paid - review;
-      const ride = eventRows.filter((item) => item.needsRide === "Sim").length;
-      const seats = eventRows.reduce((total, item) => total + Number(item.seats || 0), 0);
       const available = Math.max(selectedEvent.capacity - eventRows.length, 0);
 
       $("#adminTable").innerHTML = `
@@ -3059,8 +3019,7 @@
             <div class="event-admin__metric"><strong>${eventRows.length}</strong><span>Inscrições</span></div>
             <div class="event-admin__metric"><strong>${paid}</strong><span>Pagos/aprovados</span></div>
             <div class="event-admin__metric"><strong>${pending}</strong><span>Pendentes</span></div>
-            <div class="event-admin__metric"><strong>${ride}</strong><span>Precisam carona</span></div>
-            <div class="event-admin__metric"><strong>${seats}</strong><span>Vagas ofertadas</span></div>
+            <div class="event-admin__metric"><strong>${review}</strong><span>Em análise</span></div>
           </div>
           <div class="event-admin__vacancies">
             <span>Vagas totais: <strong>${selectedEvent.capacity}</strong></span>
@@ -3091,9 +3050,7 @@
         ["E-mail", (record) => record.email],
         ["Celular", (record) => record.phone],
         ["CPF", (record) => record.cpf],
-        ["Igreja", (record) => record.church],
-        ["Endereço", (record) => buildAddress(record)],
-        ["Carona", (record) => `Precisa: ${record.needsRide || "Não"} | Oferece: ${record.hasCar || "Não"}${record.seats ? ` (${record.seats} vaga(s))` : ""}`],
+        ["Dias de participação", (record) => selectedEventDaysText(record)],
         ["Pagamento", (record) => record.paymentMethod],
         ["Status", (record) => record.paymentStatus],
         ["Referência", (record) => record.paymentReference],
@@ -3292,20 +3249,6 @@
       }
     });
 
-    $("#cep").addEventListener("input", (event) => {
-      event.target.value = formatCep(event.target.value);
-      if (onlyDigits(event.target.value).length === 8) fetchAddressByCep(event.target.value);
-    });
-
-    document.querySelectorAll("input[name='hasCar']").forEach((input) => {
-      input.addEventListener("change", () => {
-        const hasCar = form.elements.hasCar.value === "Sim";
-        seatsField.hidden = !hasCar;
-        seatsSelect.required = hasCar;
-        if (!hasCar) seatsSelect.value = "";
-      });
-    });
-
     document.querySelectorAll("[data-tab]").forEach((button) => {
       button.addEventListener("click", () => {
         showTab(button.dataset.tab);
@@ -3371,6 +3314,11 @@
           return;
         }
 
+        if (!new FormData(form).getAll("eventDays").length) {
+          showMessage(successBox, "Selecione os dias.", "Marque pelo menos um dia em que você participará do evento.");
+          return;
+        }
+
         const existingRegistration = hasCpfRegistrationForEvent($("#cpf").value, event.key);
         if (existingRegistration) {
           showMessage(successBox, "Inscrição já existente.", `Este CPF já possui inscrição para ${event.name}. Código: ${existingRegistration.id}.`);
@@ -3427,8 +3375,7 @@
         saveRecords(records);
         renderSuccess(record);
         form.reset();
-        seatsField.hidden = true;
-        seatsSelect.required = false;
+        eventDaysOptions.innerHTML = "";
       } catch (error) {
         showMessage(successBox, "Não foi possível finalizar.", error.message || "Ocorreu um erro inesperado no envio da inscrição.");
       } finally {

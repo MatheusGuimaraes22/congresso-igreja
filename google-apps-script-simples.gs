@@ -47,6 +47,7 @@ function handleRegistration(payload) {
   var calendar = CalendarApp.getCalendarById(CALENDAR_ID);
   var start = buildDate(registration.eventDate, registration.eventStartsAt, 19);
   var end = buildDate(registration.eventDate, registration.eventEndsAt, 21);
+  end.setDate(end.getDate() + Math.max(0, Number(registration.eventDurationDays || 1) - 1));
   var title = registration.eventName + " - " + (registration.fullName || "Inscrito");
 
   var event = calendar.createEvent(title, start, end, {
@@ -134,6 +135,7 @@ function buildRegistrationMessage(registration) {
     "Participante: " + (registration.fullName || ""),
     "E-mail: " + (registration.email || ""),
     "Telefone: " + (registration.phone || ""),
+    "Dias de participacao: " + getEventDaysText(registration),
     "Status de pagamento: " + (registration.paymentStatus || ""),
     "Referencia: " + (registration.paymentReference || ""),
     "QR Code/validacao: " + (registration.validationLink || ""),
@@ -148,6 +150,7 @@ function buildUserEmail(registration) {
     "Sua inscricao em " + (registration.eventName || "Evento ICC") + " foi recebida.",
     "",
     "Data: " + (registration.eventDate || "A confirmar"),
+    "Dias de participacao: " + getEventDaysText(registration),
     "Horario: " +
       (registration.eventStartsAt || "A confirmar") +
       " ate " +
@@ -175,11 +178,23 @@ function buildAdminRegistrationEmail(registration) {
     "Participante: " + (registration.fullName || ""),
     "E-mail: " + (registration.email || ""),
     "WhatsApp: " + (registration.phone || ""),
+    "Dias de participacao: " + getEventDaysText(registration),
     "Codigo: " + (registration.id || ""),
     "Pagamento: " + (registration.paymentStatus || ""),
     "Referencia: " + (registration.paymentReference || ""),
     "Validacao: " + (registration.validationLink || "")
   ].join("\n");
+}
+
+function getEventDaysText(registration) {
+  if (registration.eventDaysText) return registration.eventDaysText;
+  if (Array.isArray(registration.eventDaysLabels) && registration.eventDaysLabels.length) {
+    return registration.eventDaysLabels.join(", ");
+  }
+  if (Array.isArray(registration.eventDays) && registration.eventDays.length) {
+    return registration.eventDays.join(", ");
+  }
+  return "Nao informado";
 }
 
 function sendWhatsAppConfirmation(registration) {
@@ -288,6 +303,7 @@ function buildWhatsAppText(registration) {
   return [
     "Ola, " + (registration.fullName || "inscrito") + ".",
     "Sua inscricao em " + (registration.eventName || "Evento ICC") + " foi recebida.",
+    "Dias: " + getEventDaysText(registration),
     "Codigo: " + (registration.id || ""),
     "Status de pagamento: " + (registration.paymentStatus || ""),
     "Validacao/QR Code: " + (registration.validationLink || ""),

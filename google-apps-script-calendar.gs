@@ -34,6 +34,7 @@ function createCalendarInvite(registration) {
   const calendar = CalendarApp.getCalendarById(CALENDAR_ID);
   const start = buildDate(registration.eventDate, registration.eventStartsAt, DEFAULT_START_HOUR);
   const end = buildDate(registration.eventDate, registration.eventEndsAt, DEFAULT_END_HOUR);
+  end.setDate(end.getDate() + Math.max(0, Number(registration.eventDurationDays || 1) - 1));
   const title = `${registration.eventName} - ${registration.fullName || "Inscrito"}`;
   const description = [
     registration.eventDescription || "",
@@ -42,6 +43,7 @@ function createCalendarInvite(registration) {
     `Participante: ${registration.fullName || ""}`,
     `E-mail: ${registration.email || ""}`,
     `Telefone: ${registration.phone || ""}`,
+    `Dias de participacao: ${getEventDaysText(registration)}`,
     `Status de pagamento: ${registration.paymentStatus || ""}`,
     `Referencia: ${registration.paymentReference || ""}`,
     `QR Code/validacao: ${registration.validationLink || ""}`,
@@ -87,6 +89,7 @@ function sendAdminEmail(registration) {
     `Participante: ${registration.fullName || ""}`,
     `E-mail: ${registration.email || ""}`,
     `WhatsApp: ${registration.phone || ""}`,
+    `Dias de participacao: ${getEventDaysText(registration)}`,
     `Codigo: ${registration.id || ""}`,
     `Pagamento: ${registration.paymentStatus || ""}`,
     `Referencia: ${registration.paymentReference || ""}`,
@@ -166,6 +169,7 @@ function buildUserMessage(registration) {
     "",
     registration.eventDescription || "",
     `Data: ${registration.eventDate || "A confirmar"}`,
+    `Dias de participacao: ${getEventDaysText(registration)}`,
     `Horario: ${registration.eventStartsAt || "A confirmar"} ate ${registration.eventEndsAt || "A confirmar"}`,
     `Local: ${registration.eventAddress || "A confirmar"}`,
     `Maps: ${registration.eventMapsUrl || ""}`,
@@ -177,6 +181,17 @@ function buildUserMessage(registration) {
     "",
     "Guarde o QR Code para apresentar a organizacao."
   ].filter((line) => line !== "").join("\n");
+}
+
+function getEventDaysText(registration) {
+  if (registration.eventDaysText) return registration.eventDaysText;
+  if (Array.isArray(registration.eventDaysLabels) && registration.eventDaysLabels.length) {
+    return registration.eventDaysLabels.join(", ");
+  }
+  if (Array.isArray(registration.eventDays) && registration.eventDays.length) {
+    return registration.eventDays.join(", ");
+  }
+  return "Nao informado";
 }
 
 function normalizeBrazilPhone(value) {

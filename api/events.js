@@ -34,6 +34,7 @@ function normalizeEvent(event = {}) {
     imageUrl: imageUrls[0] || "",
     imageUrls,
     date: String(event.date || event.event_date || "").trim(),
+    durationDays: Math.min(7, Math.max(1, Number(event.durationDays || event.duration_days || 1))),
     startsAt: String(event.startsAt || event.starts_at || "A confirmar").trim(),
     endsAt: String(event.endsAt || event.ends_at || "A confirmar").trim()
   };
