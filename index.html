@@ -2692,9 +2692,57 @@
 
     function eventProgramDays(event) {
       const schedule = Array.isArray(event.eventSchedule) ? event.eventSchedule : [];
-      return schedule
+      const structuredDays = schedule
         .map((day, index) => ({ ...day, dayNumber: index + 1 }))
-        .filter((day) => (Array.isArray(day.moments) && day.moments.length) || day.startsAt || day.endsAt);
+        .filter((day) => Array.isArray(day.moments) && day.moments.length);
+      if (structuredDays.length) return structuredDays;
+      return inferProgramDaysFromDescription(event);
+    }
+
+    function inferProgramDaysFromDescription(event) {
+      const description = String(event.description || "");
+      if (!description || !/momento|intervalo/i.test(description)) return [];
+      const schedule = Array.isArray(event.eventSchedule) ? event.eventSchedule : [];
+      const dayMatches = [...description.matchAll(/Dia\s*(\d+)/gi)];
+      if (!dayMatches.length) {
+        return [{
+          date: event.date || "",
+          dayNumber: 1,
+          moments: inferMomentsFromText(description)
+        }].filter((day) => day.moments.length);
+      }
+      return dayMatches.map((match, index) => {
+        const dayNumber = Number(match[1] || index + 1);
+        const start = match.index || 0;
+        const end = dayMatches[index + 1]?.index ?? description.length;
+        const text = description.slice(start, end);
+        return {
+          date: schedule[dayNumber - 1]?.date || "",
+          dayNumber,
+          moments: inferMomentsFromText(text)
+        };
+      }).filter((day) => day.moments.length);
+    }
+
+    function inferMomentsFromText(text) {
+      const patterns = [
+        /((?:\d+\s*[ºo]?\s*)?Momento|Primeiro momento|Segundo momento|Terceiro momento|Intervalo)\s*:\s*([\s\S]*?)(?=(?:\d+\s*[ºo]?\s*)?Momento\s*:|Primeiro momento\s*:|Segundo momento\s*:|Terceiro momento\s*:|Intervalo\s*:|Dia\s*\d+|\.|$)/gi
+      ];
+      return patterns.flatMap((pattern) => [...String(text || "").matchAll(pattern)].map((match) => {
+        const title = match[1].replace(/\s+/g, " ").trim();
+        const content = match[2].replace(/\s+/g, " ").trim();
+        const timeMatch = content.match(/(\d{1,2}(?::\d{2})?\s*h?)\s*(?:às|as|ate|até|-)\s*(\d{1,2}(?::\d{2})?\s*h?)/i);
+        return {
+          startsAt: timeMatch ? normalizeLooseTime(timeMatch[1]) : "",
+          endsAt: timeMatch ? normalizeLooseTime(timeMatch[2]) : "",
+          theme: timeMatch ? title : `${title}: ${content}`
+        };
+      })).filter((moment) => moment.startsAt || moment.endsAt || moment.theme);
+    }
+
+    function normalizeLooseTime(value) {
+      const clean = String(value || "").replace(/\s+/g, "").replace(/h$/i, "h");
+      return /\d/.test(clean) ? clean : "";
     }
 
     function eventProgramHtml(event) {
@@ -2710,11 +2758,9 @@
             return `
               <span class="event-program__day">
                 <strong>${escapeHtml(dayLabel)}</strong>
-                ${day.moments.length
-                  ? day.moments.map((moment) => `
-                    <small>${escapeHtml(moment.startsAt || "A confirmar")} - ${escapeHtml(moment.endsAt || "A confirmar")}: ${escapeHtml(moment.theme || "Momento")}</small>
-                  `).join("")
-                  : `<small>${escapeHtml(day.startsAt || "A confirmar")} - ${escapeHtml(day.endsAt || "A confirmar")}: programação do dia</small>`}
+                ${day.moments.map((moment) => `
+                  <small>${escapeHtml(moment.startsAt || "A confirmar")} - ${escapeHtml(moment.endsAt || "A confirmar")}: ${escapeHtml(moment.theme || "Momento")}</small>
+                `).join("")}
               </span>
             `;
           }).join("")}
@@ -2735,11 +2781,9 @@
             return `
               <span class="event-card__program-day">
                 <strong>${escapeHtml(dayLabel)}</strong>
-                ${day.moments.length
-                  ? day.moments.slice(0, 4).map((moment) => `
-                    <small>${escapeHtml(moment.startsAt || "A confirmar")} - ${escapeHtml(moment.endsAt || "A confirmar")}: ${escapeHtml(moment.theme || "Momento")}</small>
-                  `).join("")
-                  : `<small>${escapeHtml(day.startsAt || "A confirmar")} - ${escapeHtml(day.endsAt || "A confirmar")}: programação do dia</small>`}
+                ${day.moments.slice(0, 4).map((moment) => `
+                  <small>${escapeHtml(moment.startsAt || "A confirmar")} - ${escapeHtml(moment.endsAt || "A confirmar")}: ${escapeHtml(moment.theme || "Momento")}</small>
+                `).join("")}
                 ${day.moments.length > 4 ? `<small>+ ${day.moments.length - 4} momento(s)</small>` : ""}
               </span>
             `;
