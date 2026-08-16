@@ -535,6 +535,12 @@
       margin-top: 6px;
     }
 
+    .event-program__title {
+      font-size: 13px;
+      font-weight: 900;
+      color: #303630;
+    }
+
     .event-program__day {
       display: grid;
       gap: 4px;
@@ -596,6 +602,28 @@
       border-radius: 8px;
       background: #fff;
       font-weight: 700;
+    }
+
+    .choice--day {
+      align-items: flex-start;
+      flex-direction: column;
+      min-width: min(260px, 100%);
+    }
+
+    .choice__main {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .choice__program {
+      display: grid;
+      gap: 3px;
+      padding-left: 26px;
+      color: var(--muted);
+      font-size: 12px;
+      line-height: 1.35;
+      font-weight: 600;
     }
 
     .choice input {
@@ -2479,7 +2507,8 @@
             value,
             label: `${dateLabel}, ${item.startsAt || "A confirmar"} às ${item.endsAt || "A confirmar"}`,
             startsAt: item.startsAt,
-            endsAt: item.endsAt
+            endsAt: item.endsAt,
+            moments: Array.isArray(item.moments) ? item.moments : []
           };
         });
       }
@@ -2493,7 +2522,8 @@
             value,
             label: date.toLocaleDateString("pt-BR", { weekday: "short", day: "2-digit", month: "2-digit" }),
             startsAt: event.startsAt,
-            endsAt: event.endsAt
+            endsAt: event.endsAt,
+            moments: []
           };
         });
       }
@@ -2588,11 +2618,26 @@
       if (!eventDaysOptions) return;
       const days = getEventDays(event);
       eventDaysOptions.innerHTML = days.map((day, index) => `
-        <label class="choice">
-          <input type="checkbox" name="eventDays" value="${escapeHtml(day.value)}">
-          ${escapeHtml(day.label)}
+        <label class="choice choice--day">
+          <span class="choice__main">
+            <input type="checkbox" name="eventDays" value="${escapeHtml(day.value)}">
+            ${escapeHtml(day.label)}
+          </span>
+          ${eventDayMomentsHtml(day)}
         </label>
       `).join("");
+    }
+
+    function eventDayMomentsHtml(day) {
+      const moments = Array.isArray(day.moments) ? day.moments : [];
+      if (!moments.length) return "";
+      return `
+        <span class="choice__program">
+          ${moments.map((moment) => `
+            <span>${escapeHtml(moment.startsAt || "A confirmar")} - ${escapeHtml(moment.endsAt || "A confirmar")}: ${escapeHtml(moment.theme || "Momento")}</span>
+          `).join("")}
+        </span>
+      `;
     }
 
     function selectedEventDaysText(record) {
@@ -2616,14 +2661,17 @@
 
     function eventProgramHtml(event) {
       const schedule = Array.isArray(event.eventSchedule) ? event.eventSchedule : [];
-      const daysWithMoments = schedule.filter((day) => Array.isArray(day.moments) && day.moments.length);
+      const daysWithMoments = schedule
+        .map((day, index) => ({ ...day, dayNumber: index + 1 }))
+        .filter((day) => Array.isArray(day.moments) && day.moments.length);
       if (!daysWithMoments.length) return "";
       return `
         <span class="event-program">
-          ${daysWithMoments.map((day, index) => {
+          <strong class="event-program__title">Programação</strong>
+          ${daysWithMoments.map((day) => {
             const dayLabel = /^\d{4}-\d{2}-\d{2}$/.test(day.date || "")
               ? new Date(`${day.date}T12:00:00`).toLocaleDateString("pt-BR", { weekday: "short", day: "2-digit", month: "2-digit" })
-              : `Dia ${index + 1}`;
+              : `Dia ${day.dayNumber}`;
             return `
               <span class="event-program__day">
                 <strong>${escapeHtml(dayLabel)}</strong>
@@ -2707,6 +2755,7 @@
           ${eventImageHtml(event, "event-info__image")}
           <span>${escapeHtml(event.description)}</span>
           <span>${escapeHtml(eventTimeText(event))}</span>
+          ${eventProgramHtml(event)}
           <span>Voltado para: ${escapeHtml(event.audience || "Toda a igreja")}</span>
           <span>Endereço: <a class="map-link" href="${escapeHtml(event.mapsUrl)}" target="_blank" rel="noopener">${escapeHtml(event.address || "A confirmar")}</a></span>
         </span>
