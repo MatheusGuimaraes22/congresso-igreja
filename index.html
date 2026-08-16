@@ -1456,8 +1456,8 @@
                   <div class="event-image-preview" id="eventImagePreview"></div>
                 </div>
                 <div class="field field--full">
-                  <label for="eventDescriptionInput">Descrição *</label>
-                  <textarea id="eventDescriptionInput" name="description" rows="3" required></textarea>
+                  <label for="eventDescriptionInput">Descrição</label>
+                  <textarea id="eventDescriptionInput" name="description" rows="3"></textarea>
                 </div>
               </div>
               <div class="actions">
@@ -2844,7 +2844,7 @@
           <div class="event-card ${isFull ? "is-full" : ""}" data-event="${event.key}" role="button" tabindex="${isFull ? "-1" : "0"}" aria-disabled="${isFull ? "true" : "false"}">
             ${eventImageHtml(event)}
             <strong>${escapeHtml(event.name)}</strong>
-            <span>${escapeHtml(event.description)}</span>
+            ${event.description ? `<span>${escapeHtml(event.description)}</span>` : ""}
             <span class="event-details">${eventDetailsHtml(event)}</span>
             <span class="event-meta">
               <span class="badge ${event.paid ? "badge--pending" : "badge--paid"}">${event.paid ? "Pago" : "Gratuito"}</span>
@@ -2870,7 +2870,7 @@
         Você está se inscrevendo em: <strong>${escapeHtml(event.name)}</strong>. ${event.paid ? "Este evento tem inscrição paga." : "Este evento é gratuito."} Vagas: ${eventCount(event.key)}/${event.capacity}.
           <span class="event-info">
           ${eventImageHtml(event, "event-info__image")}
-          <span>${escapeHtml(event.description)}</span>
+          ${event.description ? `<span>${escapeHtml(event.description)}</span>` : ""}
           <span>${escapeHtml(eventTimeText(event))}</span>
           ${eventProgramHtml(event)}
           <span>Voltado para: ${escapeHtml(event.audience || "Toda a igreja")}</span>
@@ -3451,7 +3451,7 @@
           <div class="event-admin__head">
             <h3>${escapeHtml(selectedEvent.name)}</h3>
             <span class="tag">${selectedEvent.paid ? "Evento pago" : "Evento gratuito"}</span>
-            <span>${escapeHtml(selectedEvent.description)}</span>
+            ${selectedEvent.description ? `<span>${escapeHtml(selectedEvent.description)}</span>` : ""}
             <span>${escapeHtml(eventTimeText(selectedEvent))}</span>
             <span>Voltado para: ${escapeHtml(selectedEvent.audience || "Toda a igreja")}</span>
             <span>Endereço: <a class="map-link" href="${escapeHtml(selectedEvent.mapsUrl)}" target="_blank" rel="noopener">${escapeHtml(selectedEvent.address || "A confirmar")}</a></span>
