@@ -2692,11 +2692,23 @@
 
     function eventProgramDays(event) {
       const schedule = Array.isArray(event.eventSchedule) ? event.eventSchedule : [];
-      const structuredDays = schedule
-        .map((day, index) => ({ ...day, dayNumber: index + 1 }))
-        .filter((day) => Array.isArray(day.moments) && day.moments.length);
-      if (structuredDays.length) return structuredDays;
-      return inferProgramDaysFromDescription(event);
+      const inferredDays = inferProgramDaysFromDescription(event);
+      const count = Math.max(schedule.length, inferredDays.length);
+      if (!count) return [];
+      return Array.from({ length: count }, (_, index) => {
+        const scheduledDay = schedule[index] || {};
+        const inferredDay = inferredDays[index] || {};
+        const moments = Array.isArray(scheduledDay.moments) && scheduledDay.moments.length
+          ? scheduledDay.moments
+          : inferredDay.moments || [];
+        return {
+          date: scheduledDay.date || inferredDay.date || "",
+          startsAt: scheduledDay.startsAt || "",
+          endsAt: scheduledDay.endsAt || "",
+          dayNumber: index + 1,
+          moments
+        };
+      }).filter((day) => day.date || day.startsAt || day.endsAt || day.moments.length);
     }
 
     function inferProgramDaysFromDescription(event) {
@@ -2746,18 +2758,16 @@
     }
 
     function eventProgramHtml(event) {
-      const daysWithMoments = eventProgramDays(event);
-      if (!daysWithMoments.length) return "";
+      const programDays = eventProgramDays(event);
+      if (!programDays.length) return "";
       return `
         <span class="event-program">
-          <strong class="event-program__title">Programação</strong>
-          ${daysWithMoments.map((day) => {
-            const dayLabel = /^\d{4}-\d{2}-\d{2}$/.test(day.date || "")
-              ? new Date(`${day.date}T12:00:00`).toLocaleDateString("pt-BR", { weekday: "short", day: "2-digit", month: "2-digit" })
-              : `Dia ${day.dayNumber}`;
+          <strong class="event-program__title">Datas, horários e momentos</strong>
+          ${programDays.map((day) => {
             return `
               <span class="event-program__day">
-                <strong>${escapeHtml(dayLabel)}</strong>
+                <strong>${escapeHtml(eventProgramDayTitle(day))}</strong>
+                <small>Início: ${escapeHtml(day.startsAt || "A confirmar")} | Término: ${escapeHtml(day.endsAt || "A confirmar")}</small>
                 ${day.moments.map((moment) => `
                   <small>${escapeHtml(moment.startsAt || "A confirmar")} - ${escapeHtml(moment.endsAt || "A confirmar")}: ${escapeHtml(moment.theme || "Momento")}</small>
                 `).join("")}
@@ -2769,18 +2779,16 @@
     }
 
     function eventProgramCardHtml(event) {
-      const daysWithMoments = eventProgramDays(event);
-      if (!daysWithMoments.length) return "";
+      const programDays = eventProgramDays(event);
+      if (!programDays.length) return "";
       return `
         <span class="event-card__program">
-          <strong class="event-card__program-title">Programação do evento</strong>
-          ${daysWithMoments.map((day) => {
-            const dayLabel = /^\d{4}-\d{2}-\d{2}$/.test(day.date || "")
-              ? new Date(`${day.date}T12:00:00`).toLocaleDateString("pt-BR", { weekday: "short", day: "2-digit", month: "2-digit" })
-              : `Dia ${day.dayNumber}`;
+          <strong class="event-card__program-title">Datas, horários e momentos</strong>
+          ${programDays.map((day) => {
             return `
               <span class="event-card__program-day">
-                <strong>${escapeHtml(dayLabel)}</strong>
+                <strong>${escapeHtml(eventProgramDayTitle(day))}</strong>
+                <small>Início: ${escapeHtml(day.startsAt || "A confirmar")} | Término: ${escapeHtml(day.endsAt || "A confirmar")}</small>
                 ${day.moments.slice(0, 4).map((moment) => `
                   <small>${escapeHtml(moment.startsAt || "A confirmar")} - ${escapeHtml(moment.endsAt || "A confirmar")}: ${escapeHtml(moment.theme || "Momento")}</small>
                 `).join("")}
@@ -2790,6 +2798,13 @@
           }).join("")}
         </span>
       `;
+    }
+
+    function eventProgramDayTitle(day) {
+      const dateLabel = /^\d{4}-\d{2}-\d{2}$/.test(day.date || "")
+        ? new Date(`${day.date}T12:00:00`).toLocaleDateString("pt-BR", { weekday: "short", day: "2-digit", month: "2-digit" })
+        : "Data a confirmar";
+      return `Dia ${day.dayNumber} - ${dateLabel}`;
     }
 
     function eventImageHtml(event, className = "event-card__image") {
